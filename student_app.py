@@ -349,13 +349,11 @@ def render_batch(sequence: list[str]) -> None:
     st.title("整体评价")
     st.write("以下题目请基于您刚刚完成的这一批练习题整体体验作答。")
     st.caption(LIKERT_HELP)
-    with st.form("batch_form"):
-        for field_name, prompt in BATCH_FIELDS:
-            render_likert(prompt, f"batch_{field_name}")
-        st.text_area("你对本问卷或本批练习题还有什么建议？", key="batch_final_comment")
-        col1, col2 = st.columns(2)
-        back = col1.form_submit_button("上一页", use_container_width=True)
-        submit = col2.form_submit_button("提交问卷", use_container_width=True)
+    for field_name, prompt in BATCH_FIELDS:
+        render_likert(prompt, f"batch_{field_name}")
+    st.text_area("你对本问卷或本批练习题还有什么建议？", key="batch_final_comment")
+    back = st.button("上一页", key="batch_back", use_container_width=True)
+    submit = st.button("提交问卷", key="batch_submit", type="primary", use_container_width=True)
     if back:
         move_page(-1, sequence)
         st.rerun()
@@ -363,7 +361,6 @@ def render_batch(sequence: list[str]) -> None:
         save_batch()
         move_page(1, sequence)
         st.rerun()
-
 
 def render_success() -> None:
     if st.session_state.get("student_batch_response", {}).get("declined"):
@@ -452,3 +449,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
