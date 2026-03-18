@@ -1,0 +1,196 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0016,Add dropout,Optimization,intermediate,model revision,"Add dropout layers to the large baseline network to examine how dropout reduces overfitting. In Keras, introduce dropout through tf.keras.layers.Dropout, applied to the output of the preceding layer. Add dropout layers to the network and train the resulting model using the same compile_and_fit procedure as before.","dropout_model = tf.keras.Sequential([
+    layers.Dense(512, activation='elu', input_shape=(FEATURES,)),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(1)
+])
+
+regularizer_histories['dropout'] = compile_and_fit(dropout_model, 'regularizers/dropout')",A trained dropout-regularized model and comparison plots or observations showing improved behavior relative to the unregularized Large model.,"- Use the same training configuration and compile_and_fit procedure as earlier models in the tutorial.
+- Introduce dropout through tf.keras.layers.Dropout.
+- Compare the resulting model against the Tiny baseline and earlier regularization variants.",,Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,1
+B0008,Revise a Dense Network with Dropout for Generalization,Optimization,intermediate,model revision,"You are given a baseline tf.keras.Sequential model trained on the IMDB dataset that overfits rapidly. Revise the model by inserting Dropout layers *only* after each Dense layer (except the final output layer), using a dropout rate of 0.5. Preserve all other aspects: architecture depth, neuron counts, activation functions, optimizer (Adam), loss (binary_crossentropy), metrics (accuracy), batch size (512), and training epochs (40). Train both the baseline and revised models on the same train/validation split. Plot and compare their validation accuracy curves over epochs. Your submission must include the revised model definition and a one-sentence interpretation of how dropout affected generalization, based on the relative gap between training and validation accuracy at epoch 40.","import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load and preprocess IMDB data
+(x_train, y_train), (x_test, y_test) = keras.datasets.imdb.load_data(num_words=10000)
+x_train = keras.preprocessing.sequence.pad_sequences(x_train, maxlen=200)
+x_test = keras.preprocessing.sequence.pad_sequences(x_test, maxlen=200)
+
+# Baseline model — DO NOT MODIFY THIS DEFINITION
+baseline_model = keras.Sequential([
+    keras.layers.Embedding(10000, 16),
+    keras.layers.GlobalAveragePooling1D(),
+    keras.layers.Dense(16, activation='relu'),
+    keras.layers.Dense(16, activation='relu'),
+    keras.layers.Dense(1, activation='sigmoid')
+])
+
+baseline_model.compile(optimizer='adam',
+                        loss='binary_crossentropy',
+                        metrics=['accuracy'])
+
+# Train baseline
+baseline_history = baseline_model.fit(
+    x_train, y_train,
+    batch_size=512,
+    epochs=40,
+    validation_split=0.2,
+    verbose=0
+)","A Python code block defining 'revised_model' (with Dropout layers inserted as specified), followed by code that trains it and produces an overlaid matplotlib plot of validation accuracy curves for both models across 40 epochs, plus a one-sentence interpretation of how dropout changed generalization (e.g., 'Dropout reduced the validation accuracy gap from X% to Y%, indicating improved generalization.')","- Insert Dropout(0.5) only after each Dense layer (not Embedding or GlobalAveragePooling1D); do not add Dropout before the final Dense(1) layer.
+- Do not change optimizer, loss, metrics, batch_size, epochs, or data preprocessing.
+- Use the exact same train/validation split as the baseline training call.
+- Produce exactly two plots: one for baseline validation accuracy vs. epoch, one for revised validation accuracy vs. epoch — overlaid on the same axes for direct comparison.","Test 1
+Description: Verify Dropout layers are present and correctly placed
+Input: revised_model.layers
+Expected: The model must contain exactly two Dropout layers, each immediately following a Dense layer (i.e., positions 3 and 5 in a 7-layer model including Embedding, GlobalAveragePooling1D, Dense, Dropout, Dense, Dropout, Dense).
+
+Test 2
+Description: Validate plot includes both curves on same axes
+Input: plt.gca().get_lines()
+Expected: The plot must contain exactly two Line2D objects, labeled 'Baseline' and 'Revised'.
+
+Test 3
+Description: Confirm interpretation references validation accuracy gap
+Input: interpretation_sentence
+Expected: Sentence must explicitly compare training vs. validation accuracy gaps (e.g., 'gap', 'difference', 'overfitting gap') at epoch 40 for both models.",Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,2
+B0025,Define the RNN model for music generation,RNN,intermediate,code completion,"Let's define our model as an nn.Module. Fill in the TODOs to define the RNN model. Add the LSTM and Linear layers so that the model embeds character indices, processes them with an LSTM of hidden_size, and maps outputs back to the vocabulary size.","class LSTMModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_size):
+        super(LSTMModel, self).__init__()
+        self.hidden_size = hidden_size
+
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+
+        # TODO: Layer 2: LSTM with hidden_size `hidden_size`
+        self.lstm = nn.LSTM('''TODO''')  # TODO
+
+        # TODO: Layer 3: Linear layer to project to vocab_size
+        self.fc = nn.Linear('''TODO''')  # TODO
+
+    def init_hidden(self, batch_size, device):
+        return (torch.zeros(1, batch_size, self.hidden_size).to(device),
+                torch.zeros(1, batch_size, self.hidden_size).to(device))
+
+    def forward(self, x, state=None, return_state=False):
+        x = self.embedding(x)
+        if state is None:
+            state = self.init_hidden(x.size(0), x.device)
+        out, state = self.lstm(x, state)
+        out = self.fc(out)
+        return out if not return_state else (out, state)
+","A completed LSTMModel class that produces predictions of shape (batch_size, sequence_length, vocab_size) for character-level music generation.","- Use nn.Module to define the model.
+- Use an embedding layer, an nn.LSTM layer, and a linear output layer.
+- The LSTM hidden size should be hidden_size.
+- The linear layer should map the LSTM output to vocab_size.",,Python,PyTorch,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,3
+B0005,Complete the RNN Cell Forward Pass for Music Sequence Generation,RNN,intermediate,code completion,"Implement the forward method of a custom PyTorch RNN cell that processes one time step of a music sequence. The cell takes an input note embedding and the previous hidden state, then returns the updated hidden state and output logits over the vocabulary. Assume autoregressive generation: the output logits at time t will be used to sample the next note (t+1). Do not modify any other part of the class.","import torch
+import torch.nn as nn
+
+class MusicRNNCell(nn.Module):
+    def __init__(self, input_size, hidden_size, vocab_size):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.vocab_size = vocab_size
+        
+        # Learnable parameters
+        self.W_ih = nn.Parameter(torch.randn(input_size, hidden_size) * 0.01)
+        self.W_hh = nn.Parameter(torch.randn(hidden_size, hidden_size) * 0.01)
+        self.b_h = nn.Parameter(torch.zeros(hidden_size))
+        self.W_ho = nn.Parameter(torch.randn(hidden_size, vocab_size) * 0.01)
+        self.b_o = nn.Parameter(torch.zeros(vocab_size))
+
+    def forward(self, x_t, h_prev):
+        """"""
+        Args:
+            x_t (torch.Tensor): Input note embedding at time t, shape (batch_size, input_size)
+            h_prev (torch.Tensor): Previous hidden state, shape (batch_size, hidden_size)
+        Returns:
+            h_t (torch.Tensor): Updated hidden state, shape (batch_size, hidden_size)
+            logits (torch.Tensor): Output logits over vocabulary, shape (batch_size, vocab_size)
+        """"""
+        # TODO: Compute h_t using tanh( x_t @ W_ih + h_prev @ W_hh + b_h )
+        # TODO: Compute logits using h_t @ W_ho + b_o
+        # Return both h_t and logits
+        pass
+","A correctly implemented forward method that returns two tensors: (1) the updated hidden state h_t of shape (batch_size, hidden_size), and (2) output logits of shape (batch_size, vocab_size), computed using the provided parameters and tanh activation.","- Use only torch.nn.functional.tanh for nonlinearity — no ReLU or sigmoid.
+- Do not use nn.RNN, nn.LSTM, or any built-in RNN modules.
+- Do not reshape, transpose, or permute tensors beyond what is required for matrix multiplication.
+- All operations must be batched; support arbitrary batch_size > 0.","Test 1
+Description: Verify output tensor shapes match specifications.
+Input: x_t = torch.randn(4, 64); h_prev = torch.randn(4, 128); cell = MusicRNNCell(64, 128, 88)
+Expected: h_t.shape == (4, 128) and logits.shape == (4, 88)
+
+Test 2
+Description: Ensure computation is deterministic given fixed inputs and parameters.
+Input: torch.manual_seed(42); x_t = torch.ones(1, 32); h_prev = torch.zeros(1, 64); cell = MusicRNNCell(32, 64, 40)
+Expected: logits.sum().item() ≈ -1.27 (within ±0.01 tolerance)
+Notes: Due to fixed seed and parameter initialization, output should be reproducible.
+
+Test 3
+Description: Confirm tanh is applied to the hidden pre-activation.
+Input: x_t = torch.zeros(1, 10); h_prev = torch.ones(1, 20); cell = MusicRNNCell(10, 20, 5)
+Expected: All values in h_t lie in (-1.0, 1.0) and are not linearly proportional to inputs.",Python,PyTorch,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,4
+B0038,RNN Model,RNN,intermediate,code completion,"The forward method below defines how to compute the output and hidden state at any time step, given the current input and the state of the model at the previous time step. Note that the RNN model loops through the outermost dimension of inputs, updating the hidden state one time step at a time. The model here uses a tanh activation function.","@d2l.add_to_class(RNNScratch)
+def forward(self, inputs, state=None):
+    if state is None:
+        # Initial state with shape: (batch_size, num_hiddens)
+        if tab.selected('mxnet'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens), ctx=inputs.ctx)
+        if tab.selected('pytorch'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens), device=inputs.device)
+        if tab.selected('tensorflow'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens))
+    else:
+        state, = state
+        if tab.selected('tensorflow'):
+            state = d2l.reshape(state, (-1, self.num_hiddens))
+    outputs = []
+    for X in inputs:
+        state = ______________________________
+        outputs.append(state)
+    return outputs, state","A completed forward method that correctly computes the hidden state at each time step and returns outputs, state.","- Loop through the outermost dimension of inputs one time step at a time.
+- Update the hidden state using the current input and previous state.
+- Use a tanh activation function.
+- Return both outputs and the final state.",,Python,PyTorch / MXNet / TensorFlow,15,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,5
+B0017,Implement RNN Hidden State Update Step,RNN,intermediate,code completion,"Complete the `forward_step` method of the `RNNScratch` class to compute the next hidden state using the standard RNN recurrence: h_t = tanh(W_xh @ x_t + W_hh @ h_{t-1} + b_h). Assume all weights and biases are already initialized and accessible as instance attributes. The method must accept current input `x_t` (shape: [batch_size, input_size]) and previous hidden state `h_prev` (shape: [batch_size, hidden_size]), and return the updated hidden state `h_t` (shape: [batch_size, hidden_size]). Do not modify any other part of the class.","import torch
+import torch.nn.functional as F
+
+class RNNScratch:
+    def __init__(self, input_size, hidden_size):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        # Weight matrices and bias (already initialized)
+        self.W_xh = torch.randn(input_size, hidden_size) * 0.01
+        self.W_hh = torch.randn(hidden_size, hidden_size) * 0.01
+        self.b_h = torch.zeros(hidden_size)
+
+    def forward_step(self, x_t, h_prev):
+        # TODO: Compute and return h_t = tanh(W_xh @ x_t + W_hh @ h_prev + b_h)
+        # Use torch.tanh and standard matrix multiplication (@)
+        # Ensure output has shape [batch_size, hidden_size]
+        pass","A tensor `h_t` of shape [batch_size, hidden_size] representing the updated hidden state after applying the RNN recurrence.","- Use only torch.tanh and matrix multiplication (@); no loops over time steps.
+- Do not reshape or squeeze tensors unless required for broadcasting.
+- Do not introduce new parameters or call external functions beyond torch.tanh and @.","Test 1
+Description: Verify output shape matches expected dimensions.
+Input: x_t = torch.ones(4, 3); h_prev = torch.zeros(4, 5)
+Expected: h_t.shape == torch.Size([4, 5])
+Notes: With input_size=3, hidden_size=5, batch_size=4
+
+Test 2
+Description: Verify tanh is applied element-wise to the pre-activation sum.
+Input: x_t = torch.zeros(1, 2); h_prev = torch.zeros(1, 2); self.W_xh = torch.zeros(2, 2); self.W_hh = torch.zeros(2, 2); self.b_h = torch.tensor([1.0, 0.0])
+Expected: torch.allclose(h_t, torch.tanh(torch.tensor([[1.0, 0.0]])), atol=1e-6)
+Notes: Pre-activation equals bias; tanh should be applied
+
+Test 3
+Description: Confirm bias is correctly broadcast across batch dimension.
+Input: x_t = torch.ones(8, 4); h_prev = torch.ones(8, 6); self.b_h = torch.arange(6.0)
+Expected: h_t[:, 0] != h_t[:, 1]  # bias elements differ → outputs differ
+Notes: Bias vector of length 6 must broadcast to each row",Python,PyTorch,15,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,6

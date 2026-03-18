@@ -1,0 +1,64 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0033,Neural Transition-Based Dependency Parsing — implement parser_model.py and run.py,RNN,intermediate,model building,"In this section, you’ll be implementing a neural-network based dependency parser with the goal of maximizing performance on the UAS (Unlabeled Attachment Score) metric. First, the model extracts a feature vector representing the current state. This feature vector consists of a list of tokens w = [w1, w2, . . . , wm] where each 0 ≤ wi < |V| is the index of a token in the vocabulary. Then our network looks up an embedding for each word and concatenates them into a single input vector: x = [Ew1, ..., Ewm]. We then compute our prediction as: h = ReLU(xW + b1), l = hU + b2, ŷ = softmax(l). In parser_model.py you will find skeleton code to implement this simple neural network using PyTorch. Complete the init, embedding_lookup and forward functions to implement the model. Then complete the train_for_epoch and train functions within the run.py file. Finally execute python run.py to train your model and compute predictions on test data from Penn Treebank (annotated with Universal Dependencies).",,A working implementation of the neural dependency parser in parser_model.py and the training functions in run.py; train the model and report the best UAS on the dev set and the UAS on the test set.,"- Do not use torch.nn.Linear or torch.nn.Embedding in your code.
+- Follow naming requirements in the TODOs if any are explicitly specified.
+- Use efficient functions and avoid for loops when implementing embedding lookup.","Test 1
+Description: Run sanity check for embedding_lookup.
+
+Test 2
+Description: Run sanity check for forward.
+
+Test 3
+Description: Debug mode; expected dev loss < 0.2 and dev UAS > 65.
+
+Test 4
+Description: Full training; expected train loss < 0.08 and dev UAS > 87.",Python,PyTorch,,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,1
+B0011,Build a Stack-LSTM Transition Parser for Dependency Parsing,RNN,intermediate,model building,"Implement a transition-based dependency parser using a stack-LSTM architecture in PyTorch. The model must consume token embeddings and a sequence of parser actions (SHIFT, LEFT-ARC, RIGHT-ARC) to predict the next action. Use two LSTMs: one for the stack (with push/pop operations simulated via tensor indexing), and one for the buffer. Concatenate top-of-stack and front-of-buffer hidden states as input to a linear classifier over three action classes. Train for one epoch on a synthetic batch of 8 sequences (each max length 10) using cross-entropy loss and Adam optimizer. Return the trained model instance.","import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class StackLSTMParser(nn.Module):
+    def __init__(self, vocab_size, embed_dim, hidden_dim, num_actions=3):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, embed_dim)
+        # TODO: Define stack LSTM, buffer LSTM, and classifier
+        # Stack LSTM processes elements pushed onto stack (use input_size=embed_dim)
+        # Buffer LSTM processes buffer tokens left-to-right (input_size=embed_dim)
+        # Classifier takes concatenated [stack_top, buffer_front] → logits for 3 actions
+        
+    def forward(self, tokens, actions_mask=None):
+        # tokens: LongTensor of shape (batch_size, seq_len)
+        # actions_mask: optional BoolTensor indicating valid positions for action prediction
+        # Return logits of shape (batch_size * seq_len, num_actions) for each timestep
+        # Only compute logits where actions_mask is True (or all timesteps if None)
+        pass
+
+# Synthetic data setup (do not modify)
+BATCH_SIZE, SEQ_LEN, VOCAB_SIZE = 8, 10, 1000
+embed_dim, hidden_dim = 64, 128
+tokens = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+actions = torch.randint(0, 3, (BATCH_SIZE, SEQ_LEN))
+actions_mask = torch.ones_like(actions, dtype=torch.bool)
+
+# Instantiate and train model here
+model = StackLSTMParser(VOCAB_SIZE, embed_dim, hidden_dim)
+","A fully initialized and trained PyTorch nn.Module instance of StackLSTMParser that satisfies the forward pass signature and produces logits of shape (batch_size * seq_len, 3) when called on the synthetic tokens tensor.","- Use exactly two separate LSTM modules: one for stack state evolution and one for buffer state evolution.
+- Simulate stack push/pop using tensor slicing and indexing—do not use Python lists or external stack libraries.
+- The classifier must take only the final hidden state of the top stack element and the final hidden state of the first buffer token (at current timestep).
+- Train for exactly one epoch with batch gradient descent (no mini-batches within epoch); use learning rate 0.001 and Adam optimizer.
+- Return only the trained model object; do not return loss history, predictions, or auxiliary tensors.","Test 1
+Description: Model instantiation and forward pass produce correct output shape
+Input: logits = model(tokens)
+Expected: logits.shape == torch.Size([80, 3])
+Notes: Ensure no runtime errors and output matches expected dimensions.
+
+Test 2
+Description: Model contains required submodules
+Input: hasattr(model, 'embedding') and hasattr(model, '_stack_lstm') and hasattr(model, '_buffer_lstm')
+Expected: True
+Notes: Student must define named LSTM modules (e.g., _stack_lstm, _buffer_lstm) — verify existence via hasattr.
+
+Test 3
+Description: Forward pass gradients flow through all parameters
+Input: logits.sum().backward(); all(p.grad is not None for p in model.parameters())
+Expected: True
+Notes: All parameters must receive non-None gradients after backward pass.",Python,PyTorch,0,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,2

@@ -1,0 +1,6 @@
+# Minimal dependencies for deploying the student survey app on Streamlit Community Cloud.
+# The full local research environment remains in requirements-research.txt.
+
+pandas>=2.3,<2.4
+streamlit>=1.44,<1.45
+supabase>=2.15,<3.0

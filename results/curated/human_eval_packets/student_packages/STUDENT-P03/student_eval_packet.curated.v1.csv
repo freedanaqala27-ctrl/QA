@@ -1,0 +1,235 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0024,Implement a character-level recurrent seq2seq translator,RNN,intermediate,model building,"Implement a basic character-level recurrent sequence-to-sequence model for translating short English sentences into short French sentences. Build an encoder LSTM that returns its final states, then build a decoder LSTM initialized with the encoder states, followed by a dense softmax layer. Train the model on vectorized character sequences and use the trained model for decoding.","encoder_inputs = keras.Input(shape=(None, num_encoder_tokens))
+encoder = keras.layers.LSTM(latent_dim, return_state=True)
+encoder_outputs, state_h, state_c = encoder(encoder_inputs)
+encoder_states = [state_h, state_c]
+
+decoder_inputs = keras.Input(shape=(None, num_decoder_tokens))
+decoder_lstm = keras.layers.LSTM(latent_dim, return_sequences=True, return_state=True)
+decoder_outputs, _, _ = decoder_lstm(decoder_inputs, initial_state=encoder_states)
+decoder_dense = keras.layers.Dense(num_decoder_tokens, activation=""softmax"")
+decoder_outputs = decoder_dense(decoder_outputs)
+
+model = keras.Model([encoder_inputs, decoder_inputs], decoder_outputs)
+model.compile(optimizer=""rmsprop"", loss=""categorical_crossentropy"", metrics=[""accuracy""])
+model.fit(
+    [encoder_input_data, decoder_input_data],
+    decoder_target_data,
+    batch_size=batch_size,
+    epochs=epochs,
+    validation_split=0.2,
+)
+",A trained character-level seq2seq model that maps short English sentences to short French sentences and can be used for decoding at inference time.,"- Use a character-level encoder-decoder architecture.
+- Use an encoder LSTM with return_state=True.
+- Initialize the decoder LSTM with the encoder states.
+- Use a dense softmax layer over the decoder outputs.",,Python,Keras / TensorFlow,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P03,1
+B0002,Build a Character-Level Seq2Seq Model with Teacher Forcing,RNN,intermediate,model building,"Implement a character-level sequence-to-sequence model using LSTM layers in Keras to translate short English words into their Pig Latin equivalents (e.g., 'hello' → 'ellohay', 'apple' → 'appleway'). Your implementation must include: (1) an encoder LSTM that processes the input word and returns its final hidden state; (2) a decoder LSTM initialized with the encoder’s final state, trained with teacher forcing (i.e., feeding the true previous character token as input at each timestep); (3) a dense output layer with softmax over the character vocabulary. Use one-hot encoded inputs/outputs for characters from a fixed vocabulary of 27 symbols (a–z + space). Train for exactly 10 epochs on the provided synthetic dataset (generated inline), and return the compiled Keras Model object.","import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# Vocabulary: 26 lowercase letters + space
+chars = 'abcdefghijklmnopqrstuvwxyz '
+char_indices = {ch: i for i, ch in enumerate(chars)}
+indices_char = {i: ch for i, ch in enumerate(chars)}
+vocab_size = len(chars)
+max_len = 12
+
+# Helper: convert word to one-hot tensor of shape (max_len, vocab_size)
+def word_to_onehot(word):
+    x = np.zeros((max_len, vocab_size))
+    for t, ch in enumerate(word[:max_len]):
+        if ch in char_indices:
+            x[t, char_indices[ch]] = 1.0
+    return x
+
+# Synthetic data generation (50 English→PigLatin pairs)
+def generate_sample_data():
+    pairs = [
+        ('hello', 'ellohay'), ('world', 'orldway'), ('apple', 'appleway'),
+        ('orange', 'angeoray'), ('eat', 'eatway'), ('under', 'underway'),
+        ('ice', 'iceway'), ('object', 'jectobay'), ('python', 'onpythay'),
+        ('train', 'aintray')
+    ] * 5
+    # Pad both sides to max_len
+    encoder_inputs = np.array([word_to_onehot(p[0]) for p in pairs])
+    decoder_inputs = np.array([word_to_onehot(' ' + p[1]) for p in pairs])  # teacher forcing: prepend ' '
+    decoder_targets = np.array([word_to_onehot(p[1] + ' ') for p in pairs])  # shift right
+    return encoder_inputs, decoder_inputs, decoder_targets
+
+encoder_inputs, decoder_inputs, decoder_targets = generate_sample_data()
+
+# TODO: Define your encoder-decoder model below.
+# - Encoder: LSTM returning state (not sequences)
+# - Decoder: LSTM taking initial_state from encoder, with teacher-forced inputs
+# - Output: Dense + softmax over vocab_size, applied timestep-wise
+# Compile with 'categorical_crossentropy' and 'adam'
+# Return the compiled model as `model`.
+","A compiled Keras Model object (`model`) with input tensors matching encoder_inputs.shape[1:] and decoder_inputs.shape[1:], and output matching decoder_targets.shape[1:], trainable and ready for `model.fit()`.","- Use exactly one LSTM layer for encoder and one for decoder (no stacked LSTMs)
+- Encoder must return only the final hidden and cell states (return_state=True), not sequences
+- Decoder must be initialized with encoder's final states and consume teacher-forced inputs (decoder_inputs)
+- Output layer must apply Dense(vocab_size) + Softmax *timestep-wise* (use TimeDistributed)
+- Do not modify the provided data generation or preprocessing functions","Test 1
+Description: Model is callable and accepts encoder/decoder inputs
+Input: model(encoder_inputs[:1], decoder_inputs[:1])
+Expected: A tensor of shape (1, max_len, vocab_size) with values in [0,1] summing to 1 along last axis
+Notes: Check output shape and softmax constraint
+
+Test 2
+Description: Model has exactly two LSTM layers (one encoder, one decoder)
+Input: len([l for l in model.layers if isinstance(l, tf.keras.layers.LSTM)])
+Expected: 2
+
+Test 3
+Description: Model is compiled with categorical_crossentropy loss
+Input: model.loss
+Expected: 'categorical_crossentropy'
+Notes: String match expected",Python,Keras / TensorFlow,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P03,2
+B0031,Implement scaled dot-product attention and multi-head attention,Transformer,intermediate-advanced,code completion,"In UvA Deep Learning Tutorial 6: Transformers and Multi-Head Attention, implement the contiguous attention module section covering scaled dot-product attention and multi-head attention. Specifically, complete or reproduce the attention computation from the section beginning with 'Scaled Dot Product Attention' and continuing through the Multi-Head Attention implementation. The task includes computing attention logits from queries and keys, applying scaling and masking, normalizing with softmax, combining values, expanding masks to compatible dimensions, and implementing the MultiheadAttention module that projects Q/K/V, splits heads, applies scaled dot-product attention, concatenates heads, and applies the output projection.","def scaled_dot_product(q, k, v, mask=None):
+    d_k = q.size()[-1]
+    attn_logits = torch.matmul(q, k.transpose(-2, -1))
+    attn_logits = attn_logits / math.sqrt(d_k)
+    if mask is not None:
+        attn_logits = attn_logits.masked_fill(mask == 0, -9e15)
+    attention = F.softmax(attn_logits, dim=-1)
+    values = torch.matmul(attention, v)
+    return values, attention
+
+
+def expand_mask(mask):
+    assert mask.ndim >= 2, ""Mask must be at least 2-dimensional with seq_length x seq_length""
+    if mask.ndim == 3:
+        mask = mask.unsqueeze(1)
+    while mask.ndim < 4:
+        mask = mask.unsqueeze(0)
+    return mask
+
+
+class MultiheadAttention(nn.Module):
+    def __init__(self, input_dim, embed_dim, num_heads):
+        super().__init__()
+        assert embed_dim % num_heads == 0
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        self.qkv_proj = nn.Linear(input_dim, 3 * embed_dim)
+        self.o_proj = nn.Linear(embed_dim, input_dim)
+
+    def forward(self, x, mask=None, return_attention=False):
+        # implement multi-head attention
+        pass","A working implementation of scaled dot-product attention and a MultiheadAttention module that supports masking, multiple heads, and optional return of attention maps.","- Use the contiguous section from Tutorial 6 covering Scaled Dot Product Attention and Multi-Head Attention only.
+- Do not expand the unit to include Transformer Encoder, positional encoding, or experiment sections.
+- Implement Q/K/V projection, head splitting, masking, softmax attention, head concatenation, and output projection.
+- Keep the task at the module level rather than the full end-to-end Transformer.",,Python,PyTorch / PyTorch Lightning,45,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P03,3
+B0019,Implement Scaled Dot-Product Attention with Causal Masking,Transformer,intermediate-advanced,code completion,"Complete the `scaled_dot_product_attention` function to compute scaled dot-product attention with optional causal (triangular) masking. The function must accept query, key, and value tensors of shape (batch_size, num_heads, seq_len, head_dim), apply scaling by sqrt(head_dim), compute attention scores via softmax over the last dimension of the dot product Q @ K^T, apply the mask (if provided), and return the weighted sum of values. The mask, if given, is a boolean tensor of shape (1, 1, seq_len, seq_len) where True indicates positions to be masked (i.e., set to -inf before softmax).","import torch
+import torch.nn.functional as F
+
+def scaled_dot_product_attention(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    mask: torch.Tensor = None
+) -> torch.Tensor:
+    """"""
+    Compute scaled dot-product attention.
+    
+    Args:
+        q: Query tensor of shape (batch_size, num_heads, seq_len, head_dim)
+        k: Key tensor of shape (batch_size, num_heads, seq_len, head_dim)
+        v: Value tensor of shape (batch_size, num_heads, seq_len, head_dim)
+        mask: Optional boolean mask of shape (1, 1, seq_len, seq_len)
+              True entries will be masked (set to -inf before softmax).
+    
+    Returns:
+        Output tensor of shape (batch_size, num_heads, seq_len, head_dim)
+    """"""
+    # TODO: Compute attention scores: (Q @ K^T) / sqrt(head_dim)
+    # Apply mask if provided: replace masked positions with -inf
+    # Apply softmax over the last dimension (seq_len dimension of scores)
+    # Compute weighted sum: softmax_scores @ V
+    # Return output tensor
+    pass","A tensor of shape (batch_size, num_heads, seq_len, head_dim) containing the result of scaled dot-product attention, correctly scaled, masked (if applicable), and normalized.","- Do not use torch.nn.MultiheadAttention or any built-in attention modules.
+- Use only torch.bmm, torch.matmul, or @ operator for matrix multiplication — no loops over heads or batch.
+- The scaling factor must be torch.sqrt(torch.tensor(k.size(-1), dtype=torch.float32)).
+- Masking must be applied before softmax using torch.where or equivalent; masked positions must become -inf.
+- All operations must preserve batch and head dimensions; no squeezing or unsqueezing beyond what's necessary for broadcasting.","Test 1
+Description: Verify output shape matches input query shape.
+Input: q = torch.randn(2, 4, 10, 16); k = torch.randn(2, 4, 10, 16); v = torch.randn(2, 4, 10, 16)
+Expected: output.shape == (2, 4, 10, 16)
+Notes: No mask applied.
+
+Test 2
+Description: Verify causal masking zeros out future positions in attention scores.
+Input: q = torch.randn(1, 1, 4, 8); k = torch.randn(1, 1, 4, 8); v = torch.randn(1, 1, 4, 8); mask = torch.triu(torch.ones(1, 1, 4, 4), diagonal=1).bool()
+Expected: All attention scores at positions (i,j) where j > i are effectively zero after softmax (i.e., < 1e-6).
+Notes: Use torch.allclose on softmax_scores[..., 0, :] to check first row has nonzero only at index 0.
+
+Test 3
+Description: Verify scaling factor is exactly 1/sqrt(head_dim).
+Input: q = torch.randn(1, 1, 5, 64); k = torch.randn(1, 1, 5, 64); v = torch.randn(1, 1, 5, 64)
+Expected: The largest attention score before softmax should be ~64 * (1/sqrt(64)) = 8, assuming unit-norm inputs.
+Notes: Not a strict test; used for sanity — expect max(score_matrix) ≈ 7–9 under random unit-ish norms.",Python,PyTorch / PyTorch Lightning,45,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P03,4
+B0023,Define and train a CNN for MNIST digit classification,CNN,beginner-intermediate,model building,"In MIT Introduction to Deep Learning Lab 2 Part 1, define the CNN model for handwritten digit classification using the parameters shown in the network architecture, then train and evaluate it on MNIST. Use nn.Conv2d and nn.MaxPool2d layers to build the model, define an optimizer and loss function, run the training loop, and report the test accuracy.","class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        # TODO: Define the first convolutional layer
+        self.conv1 = # TODO
+        # TODO: Define the first max pooling layer
+        self.pool1 = # TODO
+        # TODO: Define the second convolutional layer
+        self.conv2 = # TODO
+        # TODO: Define the second max pooling layer
+        self.pool2 = # TODO
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(36 * 5 * 5, 128)
+        self.relu = nn.ReLU()
+        # TODO: Define the output linear layer
+        self.fc2 = # TODO
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.pool1(x)
+        # TODO: Implement the rest of the forward pass
+        return x",A trained CNN for MNIST digit classification and a reported test accuracy on the MNIST test set.,"- Use the MNIST training and test datasets from the notebook.
+- Use the CNN architecture described in the lab.
+- Define both the model and the training/evaluation procedure in PyTorch.
+- Report test accuracy after training.",,Python,PyTorch,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P03,5
+B0014,Build a Two-Block CNN for MNIST Classification,CNN,beginner-intermediate,model building,"Define a PyTorch `nn.Module` class named `MNIST_CNN` that implements a compact convolutional neural network for digit classification on MNIST. The model must consist of two identical blocks, each containing: (1) a 3×3 convolution with 8 output channels and ReLU activation, (2) 2×2 max pooling, followed by (3) a dropout layer with p=0.1. After the two blocks, flatten the output and apply a single linear layer mapping to 10 logits (one per digit class). Do not add batch normalization or additional layers. Train this model for exactly 5 epochs using SGD (lr=0.01), cross-entropy loss, and a batch size of 128. Return the final test accuracy (as a float between 0.0 and 1.0) after training completes.","import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+
+def build_and_train_mnist_cnn():
+    # Define transformations
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
+    
+    # Load MNIST
+    train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST('./data', train=False, transform=transform)
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+    
+    # TODO: Define MNIST_CNN class here
+    
+    # TODO: Initialize model, optimizer, loss
+    
+    # TODO: Implement 5-epoch training loop
+    
+    # TODO: Evaluate on test set and return final test accuracy as float
+    
+    return 0.0  # placeholder — replace with actual accuracy","A single float value representing the test accuracy (e.g., 0.987) achieved after 5 epochs of training, rounded to three decimal places.","- Use only `nn.Conv2d`, `nn.MaxPool2d`, `nn.Dropout`, `nn.ReLU`, `nn.Linear`, and `nn.Flatten`; no batch norm, adaptive pooling, or extra layers.
+- Each convolutional block must use kernel_size=3, stride=1, padding=1; max pooling must be 2×2 with stride=2.
+- Do not modify data preprocessing beyond the provided `transforms.Normalize`.
+- Training must run for exactly 5 epochs with no early stopping or learning rate scheduling.","Test 1
+Description: Verify final test accuracy is ≥ 0.975
+Expected: True if accuracy >= 0.975 else False
+Notes: Acceptable range reflects expected performance of this architecture on MNIST with given hyperparameters.
+
+Test 2
+Description: Confirm model has exactly two conv→relu→pool→dropout blocks before the final linear layer
+Expected: Model.named_children() yields exactly 2 'block' modules (or equivalent sequential structure) followed by Flatten and Linear(?, 10)
+Notes: Use print(list(model.named_children())) to verify layer count and order.",Python,PyTorch,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P03,6
