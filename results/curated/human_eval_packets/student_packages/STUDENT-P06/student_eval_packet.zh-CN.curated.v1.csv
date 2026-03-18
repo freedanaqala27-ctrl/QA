@@ -1,0 +1,118 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0023,定义并训练用于 MNIST 分类的 CNN,CNN,beginner-intermediate,model building,在 MIT 深度学习导论 Lab 2 Part 1 的背景下，请使用 `nn.Conv2d` 和 `nn.MaxPool2d` 等层定义一个用于手写数字分类的 CNN，并在 MNIST 上完成训练与测试评估。你还需要定义优化器和损失函数，运行训练循环，并报告测试准确率。,"class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        # TODO: Define the first convolutional layer
+        self.conv1 = # TODO
+        # TODO: Define the first max pooling layer
+        self.pool1 = # TODO
+        # TODO: Define the second convolutional layer
+        self.conv2 = # TODO
+        # TODO: Define the second max pooling layer
+        self.pool2 = # TODO
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(36 * 5 * 5, 128)
+        self.relu = nn.ReLU()
+        # TODO: Define the output linear layer
+        self.fc2 = # TODO
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.pool1(x)
+        # TODO: Implement the rest of the forward pass
+        return x",一个在 MNIST 上训练完成的 CNN 模型，以及最终测试准确率。,"- 使用 notebook 中给定的 MNIST 训练集和测试集。
+- 采用实验要求中的 CNN 结构。
+- 模型、训练与评估过程都用 PyTorch 完成。
+- 训练后需要报告测试准确率。",,Python,PyTorch,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P06,1
+B0021,给稠密网络加入 L2 权重正则化,优化与训练分析,intermediate,model revision,给定一个在 IMDB 数据集上训练的 `tf.keras.Sequential` 基线模型，请只对第一个 Dense 层的 kernel 加入 `L2(0.001)` 正则化，其他结构、预处理、优化器和训练设置保持不变。分别训练基线模型和正则化模型 20 个 epoch，对比验证损失曲线，并说明正则化是否改善了泛化。,"import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+
+# Load and preprocess data
+(x_train, y_train), (x_test, y_test) = keras.datasets.imdb.load_data(num_words=10000)
+x_train = keras.preprocessing.sequence.pad_sequences(x_train, maxlen=256)
+x_test = keras.preprocessing.sequence.pad_sequences(x_test, maxlen=256)
+
+# Baseline model (do NOT modify this definition)
+baseline_model = keras.Sequential([
+    keras.layers.Embedding(input_dim=10000, output_dim=16),
+    keras.layers.GlobalAveragePooling1D(),
+    keras.layers.Dense(16, activation='relu'),
+    keras.layers.Dense(1, activation='sigmoid')
+])
+
+baseline_model.compile(optimizer='adam',
+                        loss='binary_crossentropy',
+                        metrics=['accuracy'])
+
+# Train baseline
+baseline_history = baseline_model.fit(
+    x_train, y_train,
+    batch_size=512,
+    epochs=20,
+    validation_split=0.2,
+    verbose=0
+)
+
+# === YOUR TASK STARTS HERE ===
+# Define 'regularized_model' by modifying *only* the first Dense layer
+# to include kernel_regularizer=tf.keras.regularizers.L2(0.001)
+# Keep all other layers, parameters, and training setup identical.
+# Then train it for 20 epochs with same settings.
+# Finally, compute and store:
+#   final_baseline_val_loss = baseline_history.history['val_loss'][-1]
+#   final_regularized_val_loss = regularized_history.history['val_loss'][-1]
+#   explanation = ""...""  # string explaining generalization behavior
+
+# === YOUR TASK ENDS HERE ===",提交内容应包含：1）定义并编译 `regularized_model`；2）训练代码；3）`final_baseline_val_loss`、`final_regularized_val_loss` 和解释文本。,"- 只对第一个 Dense 层的 kernel 做 L2 正则化。
+- 不要修改层数、激活函数、优化器、loss、batch size、epoch 或验证集划分。
+- 数据加载与预处理必须和基线保持一致。
+- 需要报告两个模型的最终验证损失并给出简短解释。","测试 1：模型中应只有一个 L2 正则化器，且位置正确。
+
+测试 2：正则化模型的最终验证损失应处于合理范围。
+
+测试 3：解释语句需要提到 validation loss 与 generalization / overfitting。",Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P06,2
+B0017,实现 RNN 隐状态更新步骤,RNN,intermediate,code completion,请补全 `RNNScratch` 类中的 `forward_step` 方法，按标准 RNN 递推公式计算下一个隐藏状态：`h_t = tanh(W_xh @ x_t + W_hh @ h_{t-1} + b_h)`。输入为当前时间步 `x_t` 和前一时刻隐藏状态 `h_prev`，返回更新后的隐藏状态 `h_t`。不要修改类中的其他部分。,"import torch
+import torch.nn.functional as F
+
+class RNNScratch:
+    def __init__(self, input_size, hidden_size):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        # Weight matrices and bias (already initialized)
+        self.W_xh = torch.randn(input_size, hidden_size) * 0.01
+        self.W_hh = torch.randn(hidden_size, hidden_size) * 0.01
+        self.b_h = torch.zeros(hidden_size)
+
+    def forward_step(self, x_t, h_prev):
+        # TODO: Compute and return h_t = tanh(W_xh @ x_t + W_hh @ h_prev + b_h)
+        # Use torch.tanh and standard matrix multiplication (@)
+        # Ensure output has shape [batch_size, hidden_size]
+        pass","返回形状为 `[batch_size, hidden_size]` 的张量 `h_t`。","- 只能使用 `torch.tanh` 与矩阵乘法 `@`。
+- 不要额外引入新参数或调用其他外部函数。
+- 仅在必要时进行张量广播，不要随意 reshape。","测试 1：检查输出形状。
+
+测试 2：检查 tanh 是否作用在预激活结果上。
+
+测试 3：检查偏置是否能正确按 batch 维度广播。",Python,PyTorch,15,intermediate,,formal,,,,,,,,,,,,STUDENT-P06,3
+B0030,在 IMDB 上构建并训练双层双向 LSTM,RNN,intermediate,model building,请为 IMDB 影评情感分类任务构建一个文本分类模型：先用 embedding 层表示输入，再接两个双向 LSTM 层，最后接一个 sigmoid 输出层。完成训练与评估，并报告验证集准确率和损失。,"max_features = 20000
+maxlen = 200
+
+inputs = keras.Input(shape=(None,), dtype=""int32"")
+x = layers.Embedding(max_features, 128)(inputs)
+x = layers.Bidirectional(layers.LSTM(64, return_sequences=True))(x)
+x = layers.Bidirectional(layers.LSTM(64))(x)
+outputs = layers.Dense(1, activation=""sigmoid"")(x)
+model = keras.Model(inputs, outputs)
+
+(x_train, y_train), (x_val, y_val) = keras.datasets.imdb.load_data(num_words=max_features)
+x_train = keras.utils.pad_sequences(x_train, maxlen=maxlen)
+x_val = keras.utils.pad_sequences(x_val, maxlen=maxlen)
+
+model.compile(optimizer=""adam"", loss=""binary_crossentropy"", metrics=[""accuracy""])
+model.fit(x_train, y_train, batch_size=32, epochs=2, validation_data=(x_val, y_val))
+",一个在 IMDB 情感分类任务上训练完成的 Keras 模型，以及训练后的验证指标。,"- 使用 `num_words=max_features` 加载 IMDB 数据集。
+- 将输入序列 padding 到 `maxlen=200`。
+- 必须使用两个双向 LSTM 层。
+- 输出层使用 sigmoid 做二分类。",,Python,Keras / TensorFlow,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P06,4

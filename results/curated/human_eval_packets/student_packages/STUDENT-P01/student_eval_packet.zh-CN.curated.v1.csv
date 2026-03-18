@@ -1,0 +1,126 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0044,显式 Padding 与 Stride 的卷积层前向传播,CNN,intermediate,code completion,"请用 NumPy 实现二维卷积层的前向传播。给定输入张量 `(N, C, H, W)`、卷积核张量 `(F, C, HH, WW)`、padding `p` 和 stride `s`，计算输出激活张量。默认对输入四周做零填充，输出形状满足标准卷积公式。禁止使用内置卷积函数，必须用循环显式实现。","import numpy as np
+
+def conv_forward_naive(x, w, b, pad, stride):
+    """"""
+    A naive implementation of the forward pass for a convolutional layer.
+    
+    Inputs:
+    - x: Input data of shape (N, C, H, W)
+    - w: Filter weights of shape (F, C, HH, WW)
+    - b: Biases of shape (F,)
+    - pad: Integer padding amount
+    - stride: Integer stride
+    
+    Returns:
+    - out: Output data of shape (N, F, H_out, W_out)
+    """"""
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    
+    # Compute output spatial dimensions
+    H_out = 1 + (H + 2 * pad - HH) // stride
+    W_out = 1 + (W + 2 * pad - WW) // stride
+    
+    # Initialize output tensor
+    out = np.zeros((N, F, H_out, W_out))
+    
+    # TODO: Implement the convolution forward pass.
+    # Hint: Loop over N (batch), F (filters), H_out, and W_out.
+    # Apply zero-padding to x before sliding windows.
+    # For each output location (i, j), compute dot product between
+    # the local input region and filter w[f], then add bias b[f].
+    
+    return out","返回形状为 `(N, F, H_out, W_out)` 的 NumPy 数组 `out`，其中每个位置的值由对应局部窗口与卷积核逐元素乘加并加上偏置得到。","- 只能使用 NumPy，不要调用外部卷积函数。
+- 必须显式对输入做 zero-padding。
+- 保持 NCHW 张量布局。
+- 实现应支持满足形状条件的任意整数 padding 与 stride。","测试 1：检查输出形状是否正确。
+
+测试 2：检查中心位置的卷积结果是否与手算一致。
+
+测试 3：检查边界位置在 padding 后是否正确使用 0 值。",Python,NumPy,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,1
+B0016,加入 Dropout,优化与训练分析,intermediate,model revision,请在较大的基线网络中加入 Dropout 层，观察其对过拟合的影响。使用 `tf.keras.layers.Dropout`，并将 Dropout 应用于前一层的输出。完成网络改写后，沿用原有的 `compile_and_fit` 过程训练模型。,"dropout_model = tf.keras.Sequential([
+    layers.Dense(512, activation='elu', input_shape=(FEATURES,)),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(1)
+])
+
+regularizer_histories['dropout'] = compile_and_fit(dropout_model, 'regularizers/dropout')",一个加入 Dropout 后训练完成的模型，以及与未正则化 Large 模型相比的现象或结果说明。,"- 保持与教程前面相同的训练配置。
+- 使用 `tf.keras.layers.Dropout` 实现 Dropout。
+- 需要将结果与 Tiny 基线和前面的正则化变体进行比较。",,Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,2
+B0002,构建带 Teacher Forcing 的字符级 Seq2Seq 模型,RNN,intermediate,model building,请使用 Keras 中的 LSTM 构建一个字符级序列到序列模型，把简短英文单词翻译成对应的 Pig Latin 形式（例如 hello → ellohay，apple → appleway）。模型必须包含：1）编码器 LSTM，读取输入单词并输出最后的隐藏状态；2）以编码器最终状态初始化的解码器 LSTM，并在训练时使用 teacher forcing；3）对字符词表做 softmax 预测的输出层。输入和输出都使用固定 27 个符号（a-z 加空格）的 one-hot 编码。请在给定的合成数据集上训练 10 个 epoch，并返回编译好的 Keras 模型。,"import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# Vocabulary: 26 lowercase letters + space
+chars = 'abcdefghijklmnopqrstuvwxyz '
+char_indices = {ch: i for i, ch in enumerate(chars)}
+indices_char = {i: ch for i, ch in enumerate(chars)}
+vocab_size = len(chars)
+max_len = 12
+
+# Helper: convert word to one-hot tensor of shape (max_len, vocab_size)
+def word_to_onehot(word):
+    x = np.zeros((max_len, vocab_size))
+    for t, ch in enumerate(word[:max_len]):
+        if ch in char_indices:
+            x[t, char_indices[ch]] = 1.0
+    return x
+
+# Synthetic data generation (50 English→PigLatin pairs)
+def generate_sample_data():
+    pairs = [
+        ('hello', 'ellohay'), ('world', 'orldway'), ('apple', 'appleway'),
+        ('orange', 'angeoray'), ('eat', 'eatway'), ('under', 'underway'),
+        ('ice', 'iceway'), ('object', 'jectobay'), ('python', 'onpythay'),
+        ('train', 'aintray')
+    ] * 5
+    # Pad both sides to max_len
+    encoder_inputs = np.array([word_to_onehot(p[0]) for p in pairs])
+    decoder_inputs = np.array([word_to_onehot(' ' + p[1]) for p in pairs])  # teacher forcing: prepend ' '
+    decoder_targets = np.array([word_to_onehot(p[1] + ' ') for p in pairs])  # shift right
+    return encoder_inputs, decoder_inputs, decoder_targets
+
+encoder_inputs, decoder_inputs, decoder_targets = generate_sample_data()
+
+# TODO: Define your encoder-decoder model below.
+# - Encoder: LSTM returning state (not sequences)
+# - Decoder: LSTM taking initial_state from encoder, with teacher-forced inputs
+# - Output: Dense + softmax over vocab_size, applied timestep-wise
+# Compile with 'categorical_crossentropy' and 'adam'
+# Return the compiled model as `model`.
+",返回一个已编译的 Keras 模型 `model`。它的输入形状应与 `encoder_inputs` 和 `decoder_inputs` 匹配，输出形状应与 `decoder_targets` 匹配，并且可以直接用于 `model.fit()`。,"- 只能使用 1 个编码器 LSTM 和 1 个解码器 LSTM。
+- 编码器只返回最终 hidden/cell state，不返回整段序列。
+- 解码器必须用编码器最终状态初始化，并使用 teacher forcing 输入。
+- 输出层需要对每个时间步做字符分类。
+- 不要修改给定的数据生成与预处理函数。","测试 1：模型可以同时接收编码器输入和解码器输入，输出形状应为 `(1, max_len, vocab_size)`。
+
+测试 2：模型中应恰好包含 2 个 LSTM 层（1 个编码器、1 个解码器）。
+
+测试 3：模型应使用 `categorical_crossentropy` 作为损失函数。",Python,Keras / TensorFlow,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,3
+B0046,实现 `CausalAttention.forward`,Transformer,intermediate-advanced,code completion,请在 `model_solution.py` 中实现 Transformer 的 `CausalAttention.forward` 方法，并通过对应测试。题目文件中还包含其他类，但本题只要求完成这一部分。,"class CausalAttention(nn.Module):
+    def __init__(self, config: ModelConfig):
+        super().__init__()
+        assert config.d_model % config.n_heads == 0
+        self.d_attention = int(config.d_model / config.n_heads)
+        self.W_k = nn.Linear(config.d_model, self.d_attention * config.n_heads)
+        self.W_q = nn.Linear(config.d_model, self.d_attention * config.n_heads)
+        self.W_v = nn.Linear(config.d_model, self.d_attention * config.n_heads)
+        self.W_o = nn.Linear(self.d_attention * config.n_heads, config.d_model)
+        self.register_buffer(
+            'causal_mask',
+            torch.tril(torch.ones(config.context_length, config.context_length)).view(1, 1, config.context_length, config.context_length),
+            persistent=False
+        )
+
+    def forward(self, x):
+        # TODO, complete
+        return torch.empty(1)",一个可以通过对应测试的 `CausalAttention.forward` 实现。,"- 不要修改单元测试文件。
+- 只需实现本题要求的 `CausalAttention.forward`。
+- 完成后应通过给定测试。",测试 1：运行 `tests/test_student.py::test_attention`，输出应与快照文件匹配。,Python,PyTorch,60,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P01,4

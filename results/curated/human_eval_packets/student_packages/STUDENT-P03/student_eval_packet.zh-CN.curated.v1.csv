@@ -1,0 +1,200 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0041,构建、训练并评估一个简单的 MNIST 卷积网络,CNN,beginner,model building,请使用 Keras Sequential 构建一个用于 MNIST 的卷积网络，结构包括两层 `Conv2D`、两层 `MaxPooling2D`、`Flatten`、`Dropout` 以及一个 Dense softmax 分类器。之后使用 `categorical_crossentropy` 和 Adam 训练 15 个 epoch，并在测试集上评估模型。,"model = keras.Sequential([
+    keras.Input(shape=input_shape),
+    layers.Conv2D(32, kernel_size=(3, 3), activation='relu'),
+    layers.MaxPooling2D(pool_size=(2, 2)),
+    layers.Conv2D(64, kernel_size=(3, 3), activation='relu'),
+    layers.MaxPooling2D(pool_size=(2, 2)),
+    layers.Flatten(),
+    layers.Dropout(0.5),
+    layers.Dense(num_classes, activation='softmax'),
+])
+
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.fit(x_train, y_train, batch_size=128, epochs=15, validation_split=0.1)",一个训练完成的 MNIST 卷积网络，以及 `model.evaluate` 输出的测试损失与测试准确率。,"- 使用 `keras.datasets.mnist` 提供的数据集。
+- 模型结构按示例要求构建。
+- 训练使用 `categorical_crossentropy` 与 Adam。
+- 训练结束后必须在测试集上评估。",,Python,Keras / TensorFlow,25,beginner,,formal,,,,,,,,,,,,STUDENT-P03,1
+B0036,基于二分类曲线分析不同模型规模下的过拟合,优化与训练分析,beginner-intermediate,training-analysis,使用给定 starter code，在同一个合成的类别不平衡二分类数据集上训练四个 `tf.keras.Sequential` 模型：Tiny、Small、Medium 和 Large。请在一张图上画出四个模型的训练集与验证集 binary cross-entropy 曲线，并报告每个模型：1）验证损失首次不再改善的 epoch；2）此后是否连续 5 个 epoch 以上持续上升，从而体现明显过拟合。,"import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+
+tf.random.set_seed(42)
+np.random.seed(42)
+
+# Generate synthetic binary classification dataset
+X, y = make_classification(
+    n_samples=2000,
+    n_features=20,
+    n_informative=10,
+    n_redundant=5,
+    n_clusters_per_class=1,
+    weights=[0.85, 0.15],  # imbalanced
+    random_state=42
+)
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, stratify=y, random_state=42)
+
+# Normalize features
+mean, std = X_train.mean(axis=0), X_train.std(axis=0)
+X_train = (X_train - mean) / std
+X_val = (X_val - mean) / std
+
+# Define model architectures as functions
+def build_tiny_model():
+    return tf.keras.Sequential([
+        tf.keras.layers.Dense(4, activation='relu', input_shape=(20,)),
+        tf.keras.layers.Dense(4, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+def build_small_model():
+    return tf.keras.Sequential([
+        tf.keras.layers.Dense(16, activation='relu', input_shape=(20,)),
+        tf.keras.layers.Dense(16, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+def build_medium_model():
+    return tf.keras.Sequential([
+        tf.keras.layers.Dense(32, activation='relu', input_shape=(20,)),
+        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+def build_large_model():
+    return tf.keras.Sequential([
+        tf.keras.layers.Dense(64, activation='relu', input_shape=(20,)),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+# Compile and train each model (you will implement this)
+models = {
+    'Tiny': build_tiny_model(),
+    'Small': build_small_model(),
+    'Medium': build_medium_model(),
+    'Large': build_large_model()
+}
+
+# You will add training logic here — use 50 epochs, batch_size=32, binary_crossentropy, Adam optimizer
+# Store history objects in a dictionary: histories[model_name] = history
+histories = {}
+
+# Plot setup
+plt.figure(figsize=(10, 6))
+",一张同时展示四个模型训练/验证损失曲线的图，以及一份结构化文字总结，列出每个模型的停滞 epoch 和 `overfits` 标记。,"- 所有模型都训练 50 个 epoch。
+- 优化器使用默认 Adam，损失为 binary cross-entropy。
+- 不要加入 dropout、L2 或 early stopping。
+- 所有训练/验证曲线需要画在同一张图上并标明图例。
+- 结论必须基于曲线与指标本身，不要做额外推测。","测试 1：图中应有 8 条曲线（4 条训练 + 4 条验证）。
+
+测试 2：Tiny 模型通常停滞较晚，且不应被判定为明显过拟合。
+
+测试 3：Large 模型通常较早停滞，并应被判定为过拟合。",Python,tf.keras,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P03,2
+B0011,构建用于依存句法分析的 Stack-LSTM 转移解析器,RNN,intermediate,model building,请使用 PyTorch 实现一个基于转移动作的依存句法分析器，模型采用 stack-LSTM 架构。输入为 token embedding 与动作序列（SHIFT、LEFT-ARC、RIGHT-ARC），模型需要预测下一步动作。要求使用两个 LSTM：一个表示栈状态，一个表示缓冲区状态。将栈顶隐藏状态与缓冲区首元素隐藏状态拼接后，送入线性分类器预测 3 个动作类别。请在一批合成数据上训练 1 个 epoch，并返回训练后的模型实例。,"import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class StackLSTMParser(nn.Module):
+    def __init__(self, vocab_size, embed_dim, hidden_dim, num_actions=3):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, embed_dim)
+        # TODO: Define stack LSTM, buffer LSTM, and classifier
+        # Stack LSTM processes elements pushed onto stack (use input_size=embed_dim)
+        # Buffer LSTM processes buffer tokens left-to-right (input_size=embed_dim)
+        # Classifier takes concatenated [stack_top, buffer_front] → logits for 3 actions
+        
+    def forward(self, tokens, actions_mask=None):
+        # tokens: LongTensor of shape (batch_size, seq_len)
+        # actions_mask: optional BoolTensor indicating valid positions for action prediction
+        # Return logits of shape (batch_size * seq_len, num_actions) for each timestep
+        # Only compute logits where actions_mask is True (or all timesteps if None)
+        pass
+
+# Synthetic data setup (do not modify)
+BATCH_SIZE, SEQ_LEN, VOCAB_SIZE = 8, 10, 1000
+embed_dim, hidden_dim = 64, 128
+tokens = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+actions = torch.randint(0, 3, (BATCH_SIZE, SEQ_LEN))
+actions_mask = torch.ones_like(actions, dtype=torch.bool)
+
+# Instantiate and train model here
+model = StackLSTMParser(VOCAB_SIZE, embed_dim, hidden_dim)
+","返回一个训练好的 PyTorch `nn.Module`，调用后输出形状应为 `(batch_size * seq_len, 3)`。","- 必须使用两个独立的 LSTM，分别表示 stack 和 buffer。
+- 用张量索引模拟 push/pop，不要使用 Python 列表做栈。
+- 分类器输入只能使用当前栈顶和缓冲区首元素的隐藏状态。
+- 训练 1 个 epoch，优化器使用 Adam，学习率 0.001。
+- 只返回训练好的模型对象。","测试 1：前向传播输出形状应为 `(80, 3)`。
+
+测试 2：模型应包含 embedding、stack LSTM 和 buffer LSTM 等必要模块。
+
+测试 3：反向传播后，模型参数都应具有非空梯度。",Python,PyTorch,0,intermediate,,formal,,,,,,,,,,,,STUDENT-P03,3
+B0025,定义用于音乐生成的 RNN 模型,RNN,intermediate,code completion,请补全 `LSTMModel` 类中的 TODO，使用 `nn.Module` 定义一个 RNN 模型。模型应先对字符索引做 embedding，再通过 LSTM 处理序列，最后通过线性层把输出映射回词表大小。,"class LSTMModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_size):
+        super(LSTMModel, self).__init__()
+        self.hidden_size = hidden_size
+
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+
+        # TODO: Layer 2: LSTM with hidden_size `hidden_size`
+        self.lstm = nn.LSTM('''TODO''')  # TODO
+
+        # TODO: Layer 3: Linear layer to project to vocab_size
+        self.fc = nn.Linear('''TODO''')  # TODO
+
+    def init_hidden(self, batch_size, device):
+        return (torch.zeros(1, batch_size, self.hidden_size).to(device),
+                torch.zeros(1, batch_size, self.hidden_size).to(device))
+
+    def forward(self, x, state=None, return_state=False):
+        x = self.embedding(x)
+        if state is None:
+            state = self.init_hidden(x.size(0), x.device)
+        out, state = self.lstm(x, state)
+        out = self.fc(out)
+        return out if not return_state else (out, state)
+","一个补全后的 `LSTMModel` 类，能够输出形状为 `(batch_size, sequence_length, vocab_size)` 的预测结果。","- 使用 `nn.Module` 定义模型。
+- 模型需要包含 embedding 层、`nn.LSTM` 层和线性输出层。
+- LSTM 的隐藏维度应为 `hidden_size`。
+- 线性层应把 LSTM 输出映射到 `vocab_size`。",,Python,PyTorch,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P03,4
+B0019,实现带因果掩码的缩放点积注意力,Transformer,intermediate-advanced,code completion,"请补全 `scaled_dot_product_attention` 函数，实现带可选因果掩码的缩放点积注意力。输入的 query、key、value 形状为 `(batch_size, num_heads, seq_len, head_dim)`。函数需要完成：按 `sqrt(head_dim)` 缩放、计算 `Q @ K^T`、在 softmax 前应用掩码，并返回对 value 的加权求和结果。","import torch
+import torch.nn.functional as F
+
+def scaled_dot_product_attention(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    mask: torch.Tensor = None
+) -> torch.Tensor:
+    """"""
+    Compute scaled dot-product attention.
+    
+    Args:
+        q: Query tensor of shape (batch_size, num_heads, seq_len, head_dim)
+        k: Key tensor of shape (batch_size, num_heads, seq_len, head_dim)
+        v: Value tensor of shape (batch_size, num_heads, seq_len, head_dim)
+        mask: Optional boolean mask of shape (1, 1, seq_len, seq_len)
+              True entries will be masked (set to -inf before softmax).
+    
+    Returns:
+        Output tensor of shape (batch_size, num_heads, seq_len, head_dim)
+    """"""
+    # TODO: Compute attention scores: (Q @ K^T) / sqrt(head_dim)
+    # Apply mask if provided: replace masked positions with -inf
+    # Apply softmax over the last dimension (seq_len dimension of scores)
+    # Compute weighted sum: softmax_scores @ V
+    # Return output tensor
+    pass","返回形状为 `(batch_size, num_heads, seq_len, head_dim)` 的注意力输出张量，且缩放、掩码、归一化处理正确。","- 不要使用任何内置 attention 模块。
+- 只能使用批量矩阵乘法，不要按 head 或 batch 写循环。
+- 缩放因子必须按 `sqrt(head_dim)` 计算。
+- 掩码必须在 softmax 前生效，被屏蔽位置应变为 `-inf`。
+- 需要保持 batch 与 head 维度不丢失。","测试 1：输出形状应与输入 query 的形状对应。
+
+测试 2：因果掩码应使未来位置的注意力权重变为接近 0。
+
+测试 3：必须正确使用缩放因子 `1/sqrt(head_dim)`。",Python,PyTorch / PyTorch Lightning,45,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P03,5

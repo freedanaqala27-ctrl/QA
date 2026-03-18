@@ -1,0 +1,37 @@
+{
+  "source_packet": "D:\\Downloads\\PythonProjectQA\\results\\curated\\human_eval_packets\\student_eval_packet.curated.v1.csv",
+  "translated_packet": "D:\\Downloads\\PythonProjectQA\\results\\curated\\human_eval_packets\\student_eval_packet.zh-CN.curated.v1.csv",
+  "translated_package_count": 6,
+  "packages": [
+    {
+      "package_id": "STUDENT-P01",
+      "rows": 4,
+      "output": "D:\\Downloads\\PythonProjectQA\\results\\curated\\human_eval_packets\\student_packages\\STUDENT-P01\\student_eval_packet.zh-CN.curated.v1.csv"
+    },
+    {
+      "package_id": "STUDENT-P02",
+      "rows": 4,
+      "output": "D:\\Downloads\\PythonProjectQA\\results\\curated\\human_eval_packets\\student_packages\\STUDENT-P02\\student_eval_packet.zh-CN.curated.v1.csv"
+    },
+    {
+      "package_id": "STUDENT-P03",
+      "rows": 5,
+      "output": "D:\\Downloads\\PythonProjectQA\\results\\curated\\human_eval_packets\\student_packages\\STUDENT-P03\\student_eval_packet.zh-CN.curated.v1.csv"
+    },
+    {
+      "package_id": "STUDENT-P04",
+      "rows": 5,
+      "output": "D:\\Downloads\\PythonProjectQA\\results\\curated\\human_eval_packets\\student_packages\\STUDENT-P04\\student_eval_packet.zh-CN.curated.v1.csv"
+    },
+    {
+      "package_id": "STUDENT-P05",
+      "rows": 4,
+      "output": "D:\\Downloads\\PythonProjectQA\\results\\curated\\human_eval_packets\\student_packages\\STUDENT-P05\\student_eval_packet.zh-CN.curated.v1.csv"
+    },
+    {
+      "package_id": "STUDENT-P06",
+      "rows": 4,
+      "output": "D:\\Downloads\\PythonProjectQA\\results\\curated\\human_eval_packets\\student_packages\\STUDENT-P06\\student_eval_packet.zh-CN.curated.v1.csv"
+    }
+  ]
+}

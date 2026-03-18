@@ -1,0 +1,139 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0023,Define and train a CNN for MNIST digit classification,CNN,beginner-intermediate,model building,"In MIT Introduction to Deep Learning Lab 2 Part 1, define the CNN model for handwritten digit classification using the parameters shown in the network architecture, then train and evaluate it on MNIST. Use nn.Conv2d and nn.MaxPool2d layers to build the model, define an optimizer and loss function, run the training loop, and report the test accuracy.","class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        # TODO: Define the first convolutional layer
+        self.conv1 = # TODO
+        # TODO: Define the first max pooling layer
+        self.pool1 = # TODO
+        # TODO: Define the second convolutional layer
+        self.conv2 = # TODO
+        # TODO: Define the second max pooling layer
+        self.pool2 = # TODO
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(36 * 5 * 5, 128)
+        self.relu = nn.ReLU()
+        # TODO: Define the output linear layer
+        self.fc2 = # TODO
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.pool1(x)
+        # TODO: Implement the rest of the forward pass
+        return x",A trained CNN for MNIST digit classification and a reported test accuracy on the MNIST test set.,"- Use the MNIST training and test datasets from the notebook.
+- Use the CNN architecture described in the lab.
+- Define both the model and the training/evaluation procedure in PyTorch.
+- Report test accuracy after training.",,Python,PyTorch,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P06,1
+B0021,Add L2 Weight Regularization to a Dense Network,Optimization,intermediate,model revision,"You are given a baseline tf.keras.Sequential model trained on the IMDB dataset (preprocessed to 10,000-word vocabulary, sequences padded to length 256). The baseline uses two Dense layers without regularization. Revise the model by adding L2 weight regularization with factor 0.001 *only* to the first Dense layer's kernel weights. Keep all other architecture, preprocessing, compilation (Adam optimizer, binary crossentropy), and training settings (epochs=20, batch_size=512, validation_split=0.2) unchanged. Train both the baseline and revised models for 20 epochs and compare their validation loss curves. Report the final validation loss of each model and explain whether the regularized version shows improved generalization.","import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+
+# Load and preprocess data
+(x_train, y_train), (x_test, y_test) = keras.datasets.imdb.load_data(num_words=10000)
+x_train = keras.preprocessing.sequence.pad_sequences(x_train, maxlen=256)
+x_test = keras.preprocessing.sequence.pad_sequences(x_test, maxlen=256)
+
+# Baseline model (do NOT modify this definition)
+baseline_model = keras.Sequential([
+    keras.layers.Embedding(input_dim=10000, output_dim=16),
+    keras.layers.GlobalAveragePooling1D(),
+    keras.layers.Dense(16, activation='relu'),
+    keras.layers.Dense(1, activation='sigmoid')
+])
+
+baseline_model.compile(optimizer='adam',
+                        loss='binary_crossentropy',
+                        metrics=['accuracy'])
+
+# Train baseline
+baseline_history = baseline_model.fit(
+    x_train, y_train,
+    batch_size=512,
+    epochs=20,
+    validation_split=0.2,
+    verbose=0
+)
+
+# === YOUR TASK STARTS HERE ===
+# Define 'regularized_model' by modifying *only* the first Dense layer
+# to include kernel_regularizer=tf.keras.regularizers.L2(0.001)
+# Keep all other layers, parameters, and training setup identical.
+# Then train it for 20 epochs with same settings.
+# Finally, compute and store:
+#   final_baseline_val_loss = baseline_history.history['val_loss'][-1]
+#   final_regularized_val_loss = regularized_history.history['val_loss'][-1]
+#   explanation = ""...""  # string explaining generalization behavior
+
+# === YOUR TASK ENDS HERE ===","A Python code block containing: (1) definition and compilation of 'regularized_model', (2) its training via 'fit()', (3) assignment of 'final_baseline_val_loss', 'final_regularized_val_loss', and 'explanation' variables. The explanation must reference validation loss trajectory or final value to justify whether generalization improved.","- Only add L2(0.001) regularization to the kernel of the first Dense layer (the one after GlobalAveragePooling1D); do not regularize bias or embedding layers.
+- Do not change the number of layers, units, activation functions, optimizer, learning rate, loss, batch size, epochs, or validation split.
+- Use identical data preprocessing and IMDB loading as in starter code.
+- Report both final validation losses (rounded to 4 decimal places) and a concise explanation (1–2 sentences) linking the loss difference to overfitting/generalization.","Test 1
+Description: Verifies regularized_model has exactly one L2 kernel_regularizer applied to the correct Dense layer.
+Input: len([l for l in regularized_model.layers if hasattr(l, 'kernel_regularizer') and l.kernel_regularizer is not None]) == 1 and isinstance(regularized_model.layers[2].kernel_regularizer, tf.keras.regularizers.L2)
+Expected: True
+
+Test 2
+Description: Confirms final_regularized_val_loss is within [0.30, 0.45] (typical range for this setup).
+Input: 0.30 <= final_regularized_val_loss <= 0.45
+Expected: True
+
+Test 3
+Description: Validates that explanation mentions validation loss and generalization/overfitting.
+Input: explanation.lower().count('validation') > 0 and ('generalization' in explanation.lower() or 'overfitting' in explanation.lower())
+Expected: True",Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P06,2
+B0017,Implement RNN Hidden State Update Step,RNN,intermediate,code completion,"Complete the `forward_step` method of the `RNNScratch` class to compute the next hidden state using the standard RNN recurrence: h_t = tanh(W_xh @ x_t + W_hh @ h_{t-1} + b_h). Assume all weights and biases are already initialized and accessible as instance attributes. The method must accept current input `x_t` (shape: [batch_size, input_size]) and previous hidden state `h_prev` (shape: [batch_size, hidden_size]), and return the updated hidden state `h_t` (shape: [batch_size, hidden_size]). Do not modify any other part of the class.","import torch
+import torch.nn.functional as F
+
+class RNNScratch:
+    def __init__(self, input_size, hidden_size):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        # Weight matrices and bias (already initialized)
+        self.W_xh = torch.randn(input_size, hidden_size) * 0.01
+        self.W_hh = torch.randn(hidden_size, hidden_size) * 0.01
+        self.b_h = torch.zeros(hidden_size)
+
+    def forward_step(self, x_t, h_prev):
+        # TODO: Compute and return h_t = tanh(W_xh @ x_t + W_hh @ h_prev + b_h)
+        # Use torch.tanh and standard matrix multiplication (@)
+        # Ensure output has shape [batch_size, hidden_size]
+        pass","A tensor `h_t` of shape [batch_size, hidden_size] representing the updated hidden state after applying the RNN recurrence.","- Use only torch.tanh and matrix multiplication (@); no loops over time steps.
+- Do not reshape or squeeze tensors unless required for broadcasting.
+- Do not introduce new parameters or call external functions beyond torch.tanh and @.","Test 1
+Description: Verify output shape matches expected dimensions.
+Input: x_t = torch.ones(4, 3); h_prev = torch.zeros(4, 5)
+Expected: h_t.shape == torch.Size([4, 5])
+Notes: With input_size=3, hidden_size=5, batch_size=4
+
+Test 2
+Description: Verify tanh is applied element-wise to the pre-activation sum.
+Input: x_t = torch.zeros(1, 2); h_prev = torch.zeros(1, 2); self.W_xh = torch.zeros(2, 2); self.W_hh = torch.zeros(2, 2); self.b_h = torch.tensor([1.0, 0.0])
+Expected: torch.allclose(h_t, torch.tanh(torch.tensor([[1.0, 0.0]])), atol=1e-6)
+Notes: Pre-activation equals bias; tanh should be applied
+
+Test 3
+Description: Confirm bias is correctly broadcast across batch dimension.
+Input: x_t = torch.ones(8, 4); h_prev = torch.ones(8, 6); self.b_h = torch.arange(6.0)
+Expected: h_t[:, 0] != h_t[:, 1]  # bias elements differ → outputs differ
+Notes: Bias vector of length 6 must broadcast to each row",Python,PyTorch,15,intermediate,,formal,,,,,,,,,,,,STUDENT-P06,3
+B0030,Build and train a 2-layer bidirectional LSTM on IMDB,RNN,intermediate,model building,"Build a text classification model for the IMDB movie review sentiment dataset. Use an embedding layer followed by two bidirectional LSTM layers and a dense sigmoid classifier, then train and evaluate the model on padded review sequences.","max_features = 20000
+maxlen = 200
+
+inputs = keras.Input(shape=(None,), dtype=""int32"")
+x = layers.Embedding(max_features, 128)(inputs)
+x = layers.Bidirectional(layers.LSTM(64, return_sequences=True))(x)
+x = layers.Bidirectional(layers.LSTM(64))(x)
+outputs = layers.Dense(1, activation=""sigmoid"")(x)
+model = keras.Model(inputs, outputs)
+
+(x_train, y_train), (x_val, y_val) = keras.datasets.imdb.load_data(num_words=max_features)
+x_train = keras.utils.pad_sequences(x_train, maxlen=maxlen)
+x_val = keras.utils.pad_sequences(x_val, maxlen=maxlen)
+
+model.compile(optimizer=""adam"", loss=""binary_crossentropy"", metrics=[""accuracy""])
+model.fit(x_train, y_train, batch_size=32, epochs=2, validation_data=(x_val, y_val))
+",A trained Keras model for IMDB sentiment classification with validation accuracy and loss reported after training.,"- Use the IMDB dataset loaded with num_words=max_features.
+- Pad input sequences to maxlen=200.
+- Use two bidirectional LSTM layers.
+- Use a sigmoid output for binary sentiment classification.",,Python,Keras / TensorFlow,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P06,4

@@ -1,0 +1,157 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0028,卷积：朴素前向传播,CNN,intermediate,code completion,卷积神经网络的核心是卷积运算。请在 `cs231n/layers.py` 中实现 `conv_forward_naive` 的前向传播。现阶段不必过分追求效率，优先写出清晰、正确的实现，并按给定方式运行测试。,"def conv_forward_naive(x, w, b, conv_param):
+    """"""A naive implementation of the forward pass for a convolutional layer.
+
+    The input consists of N data points, each with C channels, height H and
+    width W. We convolve each input with F different filters, where each filter
+    spans all C channels and has height HH and width WW.
+
+    Input:
+    - x: Input data of shape (N, C, H, W)
+    - w: Filter weights of shape (F, C, HH, WW)
+    - b: Biases, of shape (F,)
+    - conv_param: A dictionary with the following keys:
+      - 'stride': The number of pixels between adjacent receptive fields in the
+        horizontal and vertical directions.
+      - 'pad': The number of pixels that will be used to zero-pad the input.
+
+    During padding, 'pad' zeros should be placed symmetrically (i.e equally on both sides)
+    along the height and width axes of the input. Be careful not to modify the original
+    input x directly.
+
+    Returns a tuple of:
+    - out: Output data, of shape (N, F, H', W') where H' and W' are given by
+      H' = 1 + (H + 2 * pad - HH) / stride
+      W' = 1 + (W + 2 * pad - WW) / stride
+    - cache: (x, w, b, conv_param)
+    """"""
+    out = None
+    ###########################################################################
+    # TODO: Implement the convolutional forward pass.                         #
+    # Hint: you can use the function np.pad for padding.                      #
+    ###########################################################################
+    #                                                                         #
+    ###########################################################################
+    # END OF YOUR CODE                                                        #
+    ###########################################################################
+    cache = (x, w, b, conv_param)
+    return out, cache","返回 `(out, cache)`，其中 `out` 的形状为 `(N, F, H', W')`，`cache = (x, w, b, conv_param)`。","- 先保证实现清晰正确，不强求高效率。
+- padding 需要在高和宽两个维度上对称添加。
+- 不要直接修改原始输入 `x`。
+- 可以使用 `np.pad` 完成补零。",,Python,NumPy,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P02,1
+B0008,使用 Dropout 改写稠密网络以提升泛化,优化与训练分析,intermediate,model revision,给定一个在 IMDB 数据集上快速过拟合的 `tf.keras.Sequential` 基线模型，请仅在每个 Dense 层之后（最后输出层除外）加入 `Dropout(0.5)`。其余设置必须保持不变，包括层数、神经元数量、激活函数、优化器、损失函数、指标、batch size、训练 epoch 数以及训练/验证划分。请分别训练基线模型和改写后的模型，并绘制它们的验证准确率曲线进行比较。最后用一句话说明 Dropout 对泛化的影响。,"import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load and preprocess IMDB data
+(x_train, y_train), (x_test, y_test) = keras.datasets.imdb.load_data(num_words=10000)
+x_train = keras.preprocessing.sequence.pad_sequences(x_train, maxlen=200)
+x_test = keras.preprocessing.sequence.pad_sequences(x_test, maxlen=200)
+
+# Baseline model — DO NOT MODIFY THIS DEFINITION
+baseline_model = keras.Sequential([
+    keras.layers.Embedding(10000, 16),
+    keras.layers.GlobalAveragePooling1D(),
+    keras.layers.Dense(16, activation='relu'),
+    keras.layers.Dense(16, activation='relu'),
+    keras.layers.Dense(1, activation='sigmoid')
+])
+
+baseline_model.compile(optimizer='adam',
+                        loss='binary_crossentropy',
+                        metrics=['accuracy'])
+
+# Train baseline
+baseline_history = baseline_model.fit(
+    x_train, y_train,
+    batch_size=512,
+    epochs=40,
+    validation_split=0.2,
+    verbose=0
+)",提交内容应包含：1）定义好的 `revised_model`；2）训练代码；3）一张叠加比较两条验证准确率曲线的图；4）一句说明 Dropout 是否改善了泛化的解释。,"- 只允许在 Dense 层后加入 `Dropout(0.5)`，不要加在 Embedding 或输出层前。
+- 不要改动优化器、损失函数、batch size、epoch 或数据预处理。
+- 必须使用与基线完全相同的训练/验证划分。
+- 需要把基线与修改版的验证准确率画在同一张图上。","测试 1：模型中应恰好有 2 个 Dropout 层，且位置正确。
+
+测试 2：图中应包含两条曲线，分别代表 Baseline 与 Revised。
+
+测试 3：解释语句需要明确提到验证集表现与泛化/过拟合差距。",Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P02,2
+B0024,实现字符级循环 Seq2Seq 翻译器,RNN,intermediate,model building,请实现一个基础的字符级循环序列到序列模型，把简短英文句子翻译成简短法语句子。构建一个返回最终状态的编码器 LSTM，再构建一个以编码器状态初始化的解码器 LSTM，并接上字符级 softmax 输出层。使用向量化后的字符序列训练模型，并用训练后的模型完成解码。,"encoder_inputs = keras.Input(shape=(None, num_encoder_tokens))
+encoder = keras.layers.LSTM(latent_dim, return_state=True)
+encoder_outputs, state_h, state_c = encoder(encoder_inputs)
+encoder_states = [state_h, state_c]
+
+decoder_inputs = keras.Input(shape=(None, num_decoder_tokens))
+decoder_lstm = keras.layers.LSTM(latent_dim, return_sequences=True, return_state=True)
+decoder_outputs, _, _ = decoder_lstm(decoder_inputs, initial_state=encoder_states)
+decoder_dense = keras.layers.Dense(num_decoder_tokens, activation=""softmax"")
+decoder_outputs = decoder_dense(decoder_outputs)
+
+model = keras.Model([encoder_inputs, decoder_inputs], decoder_outputs)
+model.compile(optimizer=""rmsprop"", loss=""categorical_crossentropy"", metrics=[""accuracy""])
+model.fit(
+    [encoder_input_data, decoder_input_data],
+    decoder_target_data,
+    batch_size=batch_size,
+    epochs=epochs,
+    validation_split=0.2,
+)
+",一个训练完成的字符级 seq2seq 模型，能够将短英文句子映射为短法语句子，并可用于推理解码。,"- 使用字符级 encoder-decoder 架构。
+- 编码器 LSTM 需设置 `return_state=True`。
+- 解码器必须使用编码器状态初始化。
+- 输出层应对每个时间步做 softmax 分类。",,Python,Keras / TensorFlow,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P02,3
+B0013,实现仅解码器 Transformer 的因果自注意力,Transformer,intermediate-advanced,code completion,"请补全 `CausalSelfAttention` 类中的 `forward` 方法，实现带因果掩码的缩放点积注意力。输入的 query、key、value 张量形状均为 `(batch_size, seq_len, embed_dim)`。你需要完成多头拆分、注意力分数计算、因果掩码、softmax、dropout 以及多头合并，最终返回形状为 `(batch_size, seq_len, embed_dim)` 的输出。","import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class CausalSelfAttention(nn.Module):
+    def __init__(self, embed_dim: int, num_heads: int, dropout: float = 0.1):
+        super().__init__()
+        assert embed_dim % num_heads == 0
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        
+        self.q_proj = nn.Linear(embed_dim, embed_dim)
+        self.k_proj = nn.Linear(embed_dim, embed_dim)
+        self.v_proj = nn.Linear(embed_dim, embed_dim)
+        self.out_proj = nn.Linear(embed_dim, embed_dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """"""
+        x: (batch_size, seq_len, embed_dim)
+        Returns: (batch_size, seq_len, embed_dim)
+        """"""
+        batch_size, seq_len, embed_dim = x.shape
+        
+        # Project and reshape to (batch_size, num_heads, seq_len, head_dim)
+        q = self.q_proj(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        k = self.k_proj(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        v = self.v_proj(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        
+        # Compute scaled dot-product attention scores: (batch_size, num_heads, seq_len, seq_len)
+        # TODO: Compute attention scores (q @ k.transpose(-2, -1)) / sqrt(head_dim),
+        # then apply causal mask (upper triangular part set to -inf),
+        # then apply softmax and dropout, then compute weighted sum with v.
+        # Finally, transpose and reshape back to (batch_size, seq_len, embed_dim)
+        # and apply out_proj.
+        # Return the final output tensor.
+        
+        # Hint: Use torch.tril(torch.ones(seq_len, seq_len)) to build causal mask.
+        # Mask should be broadcastable to (batch_size, num_heads, seq_len, seq_len).
+        
+        # Your code here:
+        # ... 
+        
+        raise NotImplementedError(""Fill in the attention computation logic."")","返回形状为 `(batch_size, seq_len, embed_dim)` 的张量，数值行为应符合因果自注意力的预期。","- 只能使用 PyTorch 运算，不要按时间步写循环。
+- 因果掩码必须保证位置 i 只能关注 `<= i` 的位置。
+- softmax 前必须按 `1/sqrt(head_dim)` 缩放。
+- dropout 应作用在注意力权重上。
+- 需要正确处理 reshape / transpose，保持多头语义。","测试 1：输出形状应与输入的 batch 和 seq_len 对应。
+
+测试 2：未来位置的注意力权重应被掩蔽到接近 0。
+
+测试 3：必须正确使用 `1/sqrt(head_dim)` 的缩放因子。",Python,PyTorch,60,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P02,4

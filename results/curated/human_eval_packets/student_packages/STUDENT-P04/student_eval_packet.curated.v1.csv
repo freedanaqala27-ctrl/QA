@@ -1,94 +1,67 @@
 blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
-B0016,Add dropout,Optimization,intermediate,model revision,"Add dropout layers to the large baseline network to examine how dropout reduces overfitting. In Keras, introduce dropout through tf.keras.layers.Dropout, applied to the output of the preceding layer. Add dropout layers to the network and train the resulting model using the same compile_and_fit procedure as before.","dropout_model = tf.keras.Sequential([
-    layers.Dense(512, activation='elu', input_shape=(FEATURES,)),
-    layers.Dropout(0.5),
-    layers.Dense(512, activation='elu'),
-    layers.Dropout(0.5),
-    layers.Dense(512, activation='elu'),
-    layers.Dropout(0.5),
-    layers.Dense(512, activation='elu'),
-    layers.Dropout(0.5),
-    layers.Dense(1)
-])
-
-regularizer_histories['dropout'] = compile_and_fit(dropout_model, 'regularizers/dropout')",A trained dropout-regularized model and comparison plots or observations showing improved behavior relative to the unregularized Large model.,"- Use the same training configuration and compile_and_fit procedure as earlier models in the tutorial.
-- Introduce dropout through tf.keras.layers.Dropout.
-- Compare the resulting model against the Tiny baseline and earlier regularization variants.",,Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,1
-B0008,Revise a Dense Network with Dropout for Generalization,Optimization,intermediate,model revision,"You are given a baseline tf.keras.Sequential model trained on the IMDB dataset that overfits rapidly. Revise the model by inserting Dropout layers *only* after each Dense layer (except the final output layer), using a dropout rate of 0.5. Preserve all other aspects: architecture depth, neuron counts, activation functions, optimizer (Adam), loss (binary_crossentropy), metrics (accuracy), batch size (512), and training epochs (40). Train both the baseline and revised models on the same train/validation split. Plot and compare their validation accuracy curves over epochs. Your submission must include the revised model definition and a one-sentence interpretation of how dropout affected generalization, based on the relative gap between training and validation accuracy at epoch 40.","import tensorflow as tf
+B0042,Build a Minimal MNIST ConvNet with Keras,CNN,beginner,model building,"Construct a compact convolutional neural network in Keras to classify handwritten digits from the MNIST dataset. Your model must include exactly two Conv2D layers (each followed by ReLU activation and MaxPooling2D), one Flatten layer, one Dense hidden layer with ReLU, and a final Dense output layer with softmax activation for 10 classes. Compile the model using categorical crossentropy loss, Adam optimizer, and track accuracy. Train it for exactly 5 epochs on the standard MNIST training set (preprocessed: normalized pixel values, one-hot encoded labels). Return the trained model object.","import tensorflow as tf
 from tensorflow import keras
-import numpy as np
-import matplotlib.pyplot as plt
+from tensorflow.keras import layers
 
-# Load and preprocess IMDB data
-(x_train, y_train), (x_test, y_test) = keras.datasets.imdb.load_data(num_words=10000)
-x_train = keras.preprocessing.sequence.pad_sequences(x_train, maxlen=200)
-x_test = keras.preprocessing.sequence.pad_sequences(x_test, maxlen=200)
+# Load and preprocess MNIST
+def load_and_preprocess_mnist():
+    (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+    x_train = x_train.astype('float32') / 255.0
+    x_train = x_train.reshape(-1, 28, 28, 1)
+    y_train = keras.utils.to_categorical(y_train, 10)
+    return x_train, y_train
 
-# Baseline model — DO NOT MODIFY THIS DEFINITION
-baseline_model = keras.Sequential([
-    keras.layers.Embedding(10000, 16),
-    keras.layers.GlobalAveragePooling1D(),
-    keras.layers.Dense(16, activation='relu'),
-    keras.layers.Dense(16, activation='relu'),
-    keras.layers.Dense(1, activation='sigmoid')
-])
+x_train, y_train = load_and_preprocess_mnist()
 
-baseline_model.compile(optimizer='adam',
-                        loss='binary_crossentropy',
-                        metrics=['accuracy'])
-
-# Train baseline
-baseline_history = baseline_model.fit(
-    x_train, y_train,
-    batch_size=512,
-    epochs=40,
-    validation_split=0.2,
-    verbose=0
-)","A Python code block defining 'revised_model' (with Dropout layers inserted as specified), followed by code that trains it and produces an overlaid matplotlib plot of validation accuracy curves for both models across 40 epochs, plus a one-sentence interpretation of how dropout changed generalization (e.g., 'Dropout reduced the validation accuracy gap from X% to Y%, indicating improved generalization.')","- Insert Dropout(0.5) only after each Dense layer (not Embedding or GlobalAveragePooling1D); do not add Dropout before the final Dense(1) layer.
-- Do not change optimizer, loss, metrics, batch_size, epochs, or data preprocessing.
-- Use the exact same train/validation split as the baseline training call.
-- Produce exactly two plots: one for baseline validation accuracy vs. epoch, one for revised validation accuracy vs. epoch — overlaid on the same axes for direct comparison.","Test 1
-Description: Verify Dropout layers are present and correctly placed
-Input: revised_model.layers
-Expected: The model must contain exactly two Dropout layers, each immediately following a Dense layer (i.e., positions 3 and 5 in a 7-layer model including Embedding, GlobalAveragePooling1D, Dense, Dropout, Dense, Dropout, Dense).
+# Build your model below — do NOT modify above
+model = None  # Replace this line with your Sequential model",A fully defined and compiled Keras Sequential model object that has been trained for 5 epochs on MNIST. The submission must be the variable `model` containing the trained model.,"- Use only the Keras Sequential API
+- Exactly two Conv2D layers (32 and 64 filters, 3×3 kernel, 'same' padding)
+- No Dropout or BatchNormalization layers
+- No data augmentation
+- Train for exactly 5 epochs with batch_size=128
+- Use only the provided preprocessing function","Test 1
+Description: Model is an instance of keras.models.Sequential
+Input: isinstance(model, keras.models.Sequential)
+Expected: True
 
 Test 2
-Description: Validate plot includes both curves on same axes
-Input: plt.gca().get_lines()
-Expected: The plot must contain exactly two Line2D objects, labeled 'Baseline' and 'Revised'.
+Description: Model has exactly 7 layers (2 Conv2D + 2 MaxPooling2D + 1 Flatten + 1 Dense + 1 Dense)
+Input: len(model.layers)
+Expected: 7
 
 Test 3
-Description: Confirm interpretation references validation accuracy gap
-Input: interpretation_sentence
-Expected: Sentence must explicitly compare training vs. validation accuracy gaps (e.g., 'gap', 'difference', 'overfitting gap') at epoch 40 for both models.",Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,2
-B0025,Define the RNN model for music generation,RNN,intermediate,code completion,"Let's define our model as an nn.Module. Fill in the TODOs to define the RNN model. Add the LSTM and Linear layers so that the model embeds character indices, processes them with an LSTM of hidden_size, and maps outputs back to the vocabulary size.","class LSTMModel(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_size):
-        super(LSTMModel, self).__init__()
-        self.hidden_size = hidden_size
+Description: Final Dense layer has 10 units and 'softmax' activation
+Input: model.layers[-1].units == 10 and model.layers[-1].activation.__name__ == 'softmax'
+Expected: True
 
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-
-        # TODO: Layer 2: LSTM with hidden_size `hidden_size`
-        self.lstm = nn.LSTM('''TODO''')  # TODO
-
-        # TODO: Layer 3: Linear layer to project to vocab_size
-        self.fc = nn.Linear('''TODO''')  # TODO
-
-    def init_hidden(self, batch_size, device):
-        return (torch.zeros(1, batch_size, self.hidden_size).to(device),
-                torch.zeros(1, batch_size, self.hidden_size).to(device))
-
-    def forward(self, x, state=None, return_state=False):
-        x = self.embedding(x)
-        if state is None:
-            state = self.init_hidden(x.size(0), x.device)
-        out, state = self.lstm(x, state)
-        out = self.fc(out)
-        return out if not return_state else (out, state)
-","A completed LSTMModel class that produces predictions of shape (batch_size, sequence_length, vocab_size) for character-level music generation.","- Use nn.Module to define the model.
-- Use an embedding layer, an nn.LSTM layer, and a linear output layer.
-- The LSTM hidden size should be hidden_size.
-- The linear layer should map the LSTM output to vocab_size.",,Python,PyTorch,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,3
+Test 4
+Description: Model achieves ≥97.5% training accuracy after epoch 5
+Input: model.history.history['accuracy'][-1] >= 0.975
+Expected: True
+Notes: Tolerance accounts for minor stochastic variation; if below threshold, verify architecture and compilation",Python,Keras / TensorFlow,25,beginner,,formal,,,,,,,,,,,,STUDENT-P04,1
+B0022,Demonstrate overfitting,Optimization,beginner-intermediate,training-analysis,"The simplest way to prevent overfitting is to start with a small model. To check if you can beat the performance of the small model, progressively train some larger models. Try two hidden layers with 16 units each. Then try three hidden layers with 64 units each. As an exercise, create an even larger model and check how quickly it begins overfitting. Plot the training and validation losses and compare how validation behavior changes with model capacity.","def compile_and_fit(model, name, optimizer=None, max_epochs=10000):
+    if optimizer is None:
+        optimizer = get_optimizer()
+    model.compile(
+        optimizer=optimizer,
+        loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+        metrics=[
+            tf.keras.metrics.BinaryCrossentropy(from_logits=True, name='binary_crossentropy'),
+            'accuracy'
+        ]
+    )
+    model.summary()
+    history = model.fit(
+        train_ds,
+        steps_per_epoch=STEPS_PER_EPOCH,
+        epochs=max_epochs,
+        validation_data=validate_ds,
+        callbacks=get_callbacks(name),
+        verbose=0
+    )
+    return history",Training and validation loss curves showing that the Tiny model usually avoids overfitting while larger models overfit more quickly.,"- Each model uses the same training configuration.
+- Plot and compare validation metrics to training metrics.
+- Use a log-scale plot for the large model when needed.",,Python,tf.keras,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P04,2
 B0005,Complete the RNN Cell Forward Pass for Music Sequence Generation,RNN,intermediate,code completion,"Implement the forward method of a custom PyTorch RNN cell that processes one time step of a music sequence. The cell takes an input note embedding and the previous hidden state, then returns the updated hidden state and output logits over the vocabulary. Assume autoregressive generation: the output logits at time t will be used to sample the next note (t+1). Do not modify any other part of the class.","import torch
 import torch.nn as nn
 
@@ -136,61 +109,53 @@ Notes: Due to fixed seed and parameter initialization, output should be reproduc
 Test 3
 Description: Confirm tanh is applied to the hidden pre-activation.
 Input: x_t = torch.zeros(1, 10); h_prev = torch.ones(1, 20); cell = MusicRNNCell(10, 20, 5)
-Expected: All values in h_t lie in (-1.0, 1.0) and are not linearly proportional to inputs.",Python,PyTorch,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,4
-B0038,RNN Model,RNN,intermediate,code completion,"The forward method below defines how to compute the output and hidden state at any time step, given the current input and the state of the model at the previous time step. Note that the RNN model loops through the outermost dimension of inputs, updating the hidden state one time step at a time. The model here uses a tanh activation function.","@d2l.add_to_class(RNNScratch)
-def forward(self, inputs, state=None):
-    if state is None:
-        # Initial state with shape: (batch_size, num_hiddens)
-        if tab.selected('mxnet'):
-            state = d2l.zeros((inputs.shape[1], self.num_hiddens), ctx=inputs.ctx)
-        if tab.selected('pytorch'):
-            state = d2l.zeros((inputs.shape[1], self.num_hiddens), device=inputs.device)
-        if tab.selected('tensorflow'):
-            state = d2l.zeros((inputs.shape[1], self.num_hiddens))
-    else:
-        state, = state
-        if tab.selected('tensorflow'):
-            state = d2l.reshape(state, (-1, self.num_hiddens))
-    outputs = []
-    for X in inputs:
-        state = ______________________________
-        outputs.append(state)
-    return outputs, state","A completed forward method that correctly computes the hidden state at each time step and returns outputs, state.","- Loop through the outermost dimension of inputs one time step at a time.
-- Update the hidden state using the current input and previous state.
-- Use a tanh activation function.
-- Return both outputs and the final state.",,Python,PyTorch / MXNet / TensorFlow,15,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,5
-B0017,Implement RNN Hidden State Update Step,RNN,intermediate,code completion,"Complete the `forward_step` method of the `RNNScratch` class to compute the next hidden state using the standard RNN recurrence: h_t = tanh(W_xh @ x_t + W_hh @ h_{t-1} + b_h). Assume all weights and biases are already initialized and accessible as instance attributes. The method must accept current input `x_t` (shape: [batch_size, input_size]) and previous hidden state `h_prev` (shape: [batch_size, hidden_size]), and return the updated hidden state `h_t` (shape: [batch_size, hidden_size]). Do not modify any other part of the class.","import torch
-import torch.nn.functional as F
-
-class RNNScratch:
-    def __init__(self, input_size, hidden_size):
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        # Weight matrices and bias (already initialized)
-        self.W_xh = torch.randn(input_size, hidden_size) * 0.01
-        self.W_hh = torch.randn(hidden_size, hidden_size) * 0.01
-        self.b_h = torch.zeros(hidden_size)
-
-    def forward_step(self, x_t, h_prev):
-        # TODO: Compute and return h_t = tanh(W_xh @ x_t + W_hh @ h_prev + b_h)
-        # Use torch.tanh and standard matrix multiplication (@)
-        # Ensure output has shape [batch_size, hidden_size]
-        pass","A tensor `h_t` of shape [batch_size, hidden_size] representing the updated hidden state after applying the RNN recurrence.","- Use only torch.tanh and matrix multiplication (@); no loops over time steps.
-- Do not reshape or squeeze tensors unless required for broadcasting.
-- Do not introduce new parameters or call external functions beyond torch.tanh and @.","Test 1
-Description: Verify output shape matches expected dimensions.
-Input: x_t = torch.ones(4, 3); h_prev = torch.zeros(4, 5)
-Expected: h_t.shape == torch.Size([4, 5])
-Notes: With input_size=3, hidden_size=5, batch_size=4
+Expected: All values in h_t lie in (-1.0, 1.0) and are not linearly proportional to inputs.",Python,PyTorch,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,3
+B0033,Neural Transition-Based Dependency Parsing — implement parser_model.py and run.py,RNN,intermediate,model building,"In this section, you’ll be implementing a neural-network based dependency parser with the goal of maximizing performance on the UAS (Unlabeled Attachment Score) metric. First, the model extracts a feature vector representing the current state. This feature vector consists of a list of tokens w = [w1, w2, . . . , wm] where each 0 ≤ wi < |V| is the index of a token in the vocabulary. Then our network looks up an embedding for each word and concatenates them into a single input vector: x = [Ew1, ..., Ewm]. We then compute our prediction as: h = ReLU(xW + b1), l = hU + b2, ŷ = softmax(l). In parser_model.py you will find skeleton code to implement this simple neural network using PyTorch. Complete the init, embedding_lookup and forward functions to implement the model. Then complete the train_for_epoch and train functions within the run.py file. Finally execute python run.py to train your model and compute predictions on test data from Penn Treebank (annotated with Universal Dependencies).",,A working implementation of the neural dependency parser in parser_model.py and the training functions in run.py; train the model and report the best UAS on the dev set and the UAS on the test set.,"- Do not use torch.nn.Linear or torch.nn.Embedding in your code.
+- Follow naming requirements in the TODOs if any are explicitly specified.
+- Use efficient functions and avoid for loops when implementing embedding lookup.","Test 1
+Description: Run sanity check for embedding_lookup.
 
 Test 2
-Description: Verify tanh is applied element-wise to the pre-activation sum.
-Input: x_t = torch.zeros(1, 2); h_prev = torch.zeros(1, 2); self.W_xh = torch.zeros(2, 2); self.W_hh = torch.zeros(2, 2); self.b_h = torch.tensor([1.0, 0.0])
-Expected: torch.allclose(h_t, torch.tanh(torch.tensor([[1.0, 0.0]])), atol=1e-6)
-Notes: Pre-activation equals bias; tanh should be applied
+Description: Run sanity check for forward.
 
 Test 3
-Description: Confirm bias is correctly broadcast across batch dimension.
-Input: x_t = torch.ones(8, 4); h_prev = torch.ones(8, 6); self.b_h = torch.arange(6.0)
-Expected: h_t[:, 0] != h_t[:, 1]  # bias elements differ → outputs differ
-Notes: Bias vector of length 6 must broadcast to each row",Python,PyTorch,15,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,6
+Description: Debug mode; expected dev loss < 0.2 and dev UAS > 65.
+
+Test 4
+Description: Full training; expected train loss < 0.08 and dev UAS > 87.",Python,PyTorch,,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,4
+B0031,Implement scaled dot-product attention and multi-head attention,Transformer,intermediate-advanced,code completion,"In UvA Deep Learning Tutorial 6: Transformers and Multi-Head Attention, implement the contiguous attention module section covering scaled dot-product attention and multi-head attention. Specifically, complete or reproduce the attention computation from the section beginning with 'Scaled Dot Product Attention' and continuing through the Multi-Head Attention implementation. The task includes computing attention logits from queries and keys, applying scaling and masking, normalizing with softmax, combining values, expanding masks to compatible dimensions, and implementing the MultiheadAttention module that projects Q/K/V, splits heads, applies scaled dot-product attention, concatenates heads, and applies the output projection.","def scaled_dot_product(q, k, v, mask=None):
+    d_k = q.size()[-1]
+    attn_logits = torch.matmul(q, k.transpose(-2, -1))
+    attn_logits = attn_logits / math.sqrt(d_k)
+    if mask is not None:
+        attn_logits = attn_logits.masked_fill(mask == 0, -9e15)
+    attention = F.softmax(attn_logits, dim=-1)
+    values = torch.matmul(attention, v)
+    return values, attention
+
+
+def expand_mask(mask):
+    assert mask.ndim >= 2, ""Mask must be at least 2-dimensional with seq_length x seq_length""
+    if mask.ndim == 3:
+        mask = mask.unsqueeze(1)
+    while mask.ndim < 4:
+        mask = mask.unsqueeze(0)
+    return mask
+
+
+class MultiheadAttention(nn.Module):
+    def __init__(self, input_dim, embed_dim, num_heads):
+        super().__init__()
+        assert embed_dim % num_heads == 0
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        self.qkv_proj = nn.Linear(input_dim, 3 * embed_dim)
+        self.o_proj = nn.Linear(embed_dim, input_dim)
+
+    def forward(self, x, mask=None, return_attention=False):
+        # implement multi-head attention
+        pass","A working implementation of scaled dot-product attention and a MultiheadAttention module that supports masking, multiple heads, and optional return of attention maps.","- Use the contiguous section from Tutorial 6 covering Scaled Dot Product Attention and Multi-Head Attention only.
+- Do not expand the unit to include Transformer Encoder, positional encoding, or experiment sections.
+- Implement Q/K/V projection, head splitting, masking, softmax attention, head concatenation, and output projection.
+- Keep the task at the module level rather than the full end-to-end Transformer.",,Python,PyTorch / PyTorch Lightning,45,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P04,5

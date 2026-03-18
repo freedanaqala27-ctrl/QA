@@ -56,11 +56,22 @@ def package_exists(package_id: str) -> bool:
     return package_id in manifest["package_id"].astype(str).tolist()
 
 
-def load_package_items(package_id: str) -> pd.DataFrame:
-    packet_path = (
+def load_package_items(package_id: str, language: str = "zh-CN") -> pd.DataFrame:
+    normalized_language = (language or "").strip().lower()
+    candidate_paths: list[Path] = []
+    if normalized_language in {"zh", "zh-cn", "zh_cn", "cn"}:
+        candidate_paths.append(
+            STUDENT_PACKAGES_DIR / package_id / "student_eval_packet.zh-CN.curated.v1.csv"
+        )
+    candidate_paths.append(
         STUDENT_PACKAGES_DIR / package_id / "student_eval_packet.curated.v1.csv"
     )
-    packet = read_csv(packet_path)
+
+    packet = pd.DataFrame()
+    for packet_path in candidate_paths:
+        packet = read_csv(packet_path)
+        if not packet.empty:
+            break
     if packet.empty:
         return packet
     if "display_order" in packet.columns:

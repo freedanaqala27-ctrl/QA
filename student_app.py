@@ -96,6 +96,14 @@ def read_participant_id() -> str:
     return str(participant_value or "").strip()
 
 
+def read_language() -> str:
+    language_value = st.query_params.get("lang")
+    if isinstance(language_value, list):
+        language_value = language_value[0]
+    language = str(language_value or "").strip()
+    return language or "zh-CN"
+
+
 def build_sequence(package_df: pd.DataFrame) -> list[str]:
     item_ids = package_df["blind_exercise_id"].astype(str).tolist()
     sequence = [WELCOME_PAGE, CONSENT_PAGE, BACKGROUND_PAGE]
@@ -234,6 +242,7 @@ def render_welcome() -> None:
     st.write("问卷匿名填写，仅用于学术研究。整个问卷预计需要 8-12 分钟。")
     st.write("请根据题目本身作答，不必猜测题目来源。")
     st.info("本链接已经为您固定了题包，请在同一设备完成填写。")
+    st.caption("当前默认显示简体中文题面。如需查看英文原版，可在链接后加上 `&lang=en`。")
     if st.button("开始填写", use_container_width=True):
         st.session_state["student_page_index"] = 1
         st.rerun()
@@ -406,6 +415,7 @@ def main() -> None:
     init_db()
     package_id = read_package_id()
     participant_id = read_participant_id()
+    language = read_language()
     if not package_id:
         render_invalid_link("当前链接缺少 package 参数，无法进入正式问卷。")
         st.stop()
@@ -423,7 +433,7 @@ def main() -> None:
     if existing_meta and existing_meta.get("package_id") and existing_meta["package_id"] != package_id:
         render_invalid_link("这个参与者编号已经绑定到其他题包，不能重复用于当前链接。")
         st.stop()
-    package_df = load_package_items(package_id)
+    package_df = load_package_items(package_id, language=language)
     if package_df.empty:
         render_invalid_link("当前题包为空，暂时无法作答。")
         st.stop()

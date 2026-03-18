@@ -1,0 +1,102 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0014,构建双卷积块的 MNIST CNN,CNN,beginner-intermediate,model building,请定义一个名为 `MNIST_CNN` 的 PyTorch `nn.Module`，用于 MNIST 手写数字分类。模型包含两个相同的卷积块，每个卷积块都由以下部分组成：1）3×3 卷积，输出通道数为 8，并接 ReLU；2）2×2 最大池化；3）`Dropout(p=0.1)`。两个卷积块之后，将特征展平，并接一个输出 10 类 logits 的线性层。请训练 5 个 epoch，使用 SGD（lr=0.01）、交叉熵损失与 batch size=128，最后返回测试准确率。,"import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+
+def build_and_train_mnist_cnn():
+    # Define transformations
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
+    
+    # Load MNIST
+    train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST('./data', train=False, transform=transform)
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+    
+    # TODO: Define MNIST_CNN class here
+    
+    # TODO: Initialize model, optimizer, loss
+    
+    # TODO: Implement 5-epoch training loop
+    
+    # TODO: Evaluate on test set and return final test accuracy as float
+    
+    return 0.0  # placeholder — replace with actual accuracy",返回一个介于 0.0 到 1.0 之间的浮点数，表示模型训练 5 个 epoch 后在测试集上的准确率。,"- 只能使用 `Conv2d`、`MaxPool2d`、`Dropout`、`ReLU`、`Linear`、`Flatten`。
+- 卷积层参数固定：kernel_size=3、stride=1、padding=1。
+- 不要增加 BatchNorm、数据增强或其他额外层。
+- 必须训练满 5 个 epoch。","测试 1：最终测试准确率应不低于约 97.5%。
+
+测试 2：模型结构应为两个 conv→relu→pool→dropout 块，之后再接 Flatten 与 Linear。",Python,PyTorch,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P05,1
+B0020,加入权重正则化,优化与训练分析,intermediate,model revision,请在现有模型中加入权重正则化（weight regularization），并训练修改后的模型以比较正则化对过拟合的影响。,"l2_model = tf.keras.Sequential([
+    layers.Dense(512, activation='elu',
+                 kernel_regularizer=regularizers.l2(0.001),
+                 input_shape=(FEATURES,)),
+    layers.Dense(512, activation='elu',
+                 kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(512, activation='elu',
+                 kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(512, activation='elu',
+                 kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(1)
+])
+
+regularizer_histories['l2'] = compile_and_fit(l2_model, 'regularizers/l2')",一个加入权重正则化后训练完成的模型，以及相应的比较结果或观察结论。,"- 保持原始训练流程和数据不变。
+- 只修改与权重正则化相关的部分。
+- 需要对比修改前后的效果。",,Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,2
+B0038,RNN 模型前向传播,RNN,intermediate,code completion,下方 `forward` 方法描述了在任意时间步如何根据当前输入和前一时刻状态计算输出与隐藏状态。该模型会沿着输入的最外层维度逐时间步循环更新隐藏状态，并使用 tanh 激活函数。请完成该前向传播逻辑。,"@d2l.add_to_class(RNNScratch)
+def forward(self, inputs, state=None):
+    if state is None:
+        # Initial state with shape: (batch_size, num_hiddens)
+        if tab.selected('mxnet'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens), ctx=inputs.ctx)
+        if tab.selected('pytorch'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens), device=inputs.device)
+        if tab.selected('tensorflow'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens))
+    else:
+        state, = state
+        if tab.selected('tensorflow'):
+            state = d2l.reshape(state, (-1, self.num_hiddens))
+    outputs = []
+    for X in inputs:
+        state = ______________________________
+        outputs.append(state)
+    return outputs, state",一个补全后的 `forward` 方法，能够正确逐步更新隐藏状态，并返回 `outputs` 和最终 `state`。,"- 按输入的最外层维度逐时间步循环。
+- 用当前输入和上一时刻状态更新隐藏状态。
+- 使用 tanh 激活。
+- 返回所有输出以及最终状态。",,Python,PyTorch / MXNet / TensorFlow,15,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,3
+B0043,构建用于 IMDB 情感分类的双向 LSTM 模型,RNN,intermediate,model building,请构建一个 Keras 模型，用于 IMDB 影评的二分类情感分析。模型结构为：Embedding 层后接一个双向 LSTM 层，再接一个 sigmoid 输出层。使用 binary crossentropy 和 Adam 编译，训练 5 个 epoch，batch size 为 32，并返回训练好的模型对象。,"import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import imdb
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+# Load and preprocess IMDB data (already tokenized)
+max_features = 10000
+maxlen = 200
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+x_train = pad_sequences(x_train, maxlen=maxlen)
+x_test = pad_sequences(x_test, maxlen=maxlen)
+
+# Define your model below — do NOT modify above this line
+model = models.Sequential([
+    # Embedding layer (input_dim=max_features, output_dim=128, input_length=maxlen)
+    # Bidirectional LSTM layer (units=64, dropout=0.2, recurrent_dropout=0.2)
+    # Dense layer (units=1, activation='sigmoid')
+])
+
+# Compile the model
+# Train the model for 5 epochs, batch_size=32
+# Return 'model' at the end",一个已经构建、编译并训练完成的 Keras Sequential 模型，可对 padding 后的 IMDB 序列进行情感二分类。,"- 必须是 1 个 Embedding + 1 个 Bidirectional(LSTM) + 1 个 Dense 输出层。
+- 不要增加额外的 RNN 或 Dense 层。
+- 使用 binary crossentropy 与 Adam。
+- 训练固定为 5 个 epoch，batch_size=32。
+- 不要改标签预处理或额外加入 callback。","测试 1：`model.predict(x_test[:1])` 的输出形状应为 `(1, 1)`。
+
+测试 2：模型应恰好有 3 层。
+
+测试 3：第二层必须是包裹了 LSTM 的 `Bidirectional` 层。",Python,Keras / TensorFlow,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,4

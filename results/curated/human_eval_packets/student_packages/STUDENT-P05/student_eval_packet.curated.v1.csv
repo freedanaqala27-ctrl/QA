@@ -1,64 +1,120 @@
 blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
-B0033,Neural Transition-Based Dependency Parsing — implement parser_model.py and run.py,RNN,intermediate,model building,"In this section, you’ll be implementing a neural-network based dependency parser with the goal of maximizing performance on the UAS (Unlabeled Attachment Score) metric. First, the model extracts a feature vector representing the current state. This feature vector consists of a list of tokens w = [w1, w2, . . . , wm] where each 0 ≤ wi < |V| is the index of a token in the vocabulary. Then our network looks up an embedding for each word and concatenates them into a single input vector: x = [Ew1, ..., Ewm]. We then compute our prediction as: h = ReLU(xW + b1), l = hU + b2, ŷ = softmax(l). In parser_model.py you will find skeleton code to implement this simple neural network using PyTorch. Complete the init, embedding_lookup and forward functions to implement the model. Then complete the train_for_epoch and train functions within the run.py file. Finally execute python run.py to train your model and compute predictions on test data from Penn Treebank (annotated with Universal Dependencies).",,A working implementation of the neural dependency parser in parser_model.py and the training functions in run.py; train the model and report the best UAS on the dev set and the UAS on the test set.,"- Do not use torch.nn.Linear or torch.nn.Embedding in your code.
-- Follow naming requirements in the TODOs if any are explicitly specified.
-- Use efficient functions and avoid for loops when implementing embedding lookup.","Test 1
-Description: Run sanity check for embedding_lookup.
-
-Test 2
-Description: Run sanity check for forward.
-
-Test 3
-Description: Debug mode; expected dev loss < 0.2 and dev UAS > 65.
-
-Test 4
-Description: Full training; expected train loss < 0.08 and dev UAS > 87.",Python,PyTorch,,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,1
-B0011,Build a Stack-LSTM Transition Parser for Dependency Parsing,RNN,intermediate,model building,"Implement a transition-based dependency parser using a stack-LSTM architecture in PyTorch. The model must consume token embeddings and a sequence of parser actions (SHIFT, LEFT-ARC, RIGHT-ARC) to predict the next action. Use two LSTMs: one for the stack (with push/pop operations simulated via tensor indexing), and one for the buffer. Concatenate top-of-stack and front-of-buffer hidden states as input to a linear classifier over three action classes. Train for one epoch on a synthetic batch of 8 sequences (each max length 10) using cross-entropy loss and Adam optimizer. Return the trained model instance.","import torch
+B0014,Build a Two-Block CNN for MNIST Classification,CNN,beginner-intermediate,model building,"Define a PyTorch `nn.Module` class named `MNIST_CNN` that implements a compact convolutional neural network for digit classification on MNIST. The model must consist of two identical blocks, each containing: (1) a 3×3 convolution with 8 output channels and ReLU activation, (2) 2×2 max pooling, followed by (3) a dropout layer with p=0.1. After the two blocks, flatten the output and apply a single linear layer mapping to 10 logits (one per digit class). Do not add batch normalization or additional layers. Train this model for exactly 5 epochs using SGD (lr=0.01), cross-entropy loss, and a batch size of 128. Return the final test accuracy (as a float between 0.0 and 1.0) after training completes.","import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
 
-class StackLSTMParser(nn.Module):
-    def __init__(self, vocab_size, embed_dim, hidden_dim, num_actions=3):
-        super().__init__()
-        self.embedding = nn.Embedding(vocab_size, embed_dim)
-        # TODO: Define stack LSTM, buffer LSTM, and classifier
-        # Stack LSTM processes elements pushed onto stack (use input_size=embed_dim)
-        # Buffer LSTM processes buffer tokens left-to-right (input_size=embed_dim)
-        # Classifier takes concatenated [stack_top, buffer_front] → logits for 3 actions
-        
-    def forward(self, tokens, actions_mask=None):
-        # tokens: LongTensor of shape (batch_size, seq_len)
-        # actions_mask: optional BoolTensor indicating valid positions for action prediction
-        # Return logits of shape (batch_size * seq_len, num_actions) for each timestep
-        # Only compute logits where actions_mask is True (or all timesteps if None)
-        pass
-
-# Synthetic data setup (do not modify)
-BATCH_SIZE, SEQ_LEN, VOCAB_SIZE = 8, 10, 1000
-embed_dim, hidden_dim = 64, 128
-tokens = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
-actions = torch.randint(0, 3, (BATCH_SIZE, SEQ_LEN))
-actions_mask = torch.ones_like(actions, dtype=torch.bool)
-
-# Instantiate and train model here
-model = StackLSTMParser(VOCAB_SIZE, embed_dim, hidden_dim)
-","A fully initialized and trained PyTorch nn.Module instance of StackLSTMParser that satisfies the forward pass signature and produces logits of shape (batch_size * seq_len, 3) when called on the synthetic tokens tensor.","- Use exactly two separate LSTM modules: one for stack state evolution and one for buffer state evolution.
-- Simulate stack push/pop using tensor slicing and indexing—do not use Python lists or external stack libraries.
-- The classifier must take only the final hidden state of the top stack element and the final hidden state of the first buffer token (at current timestep).
-- Train for exactly one epoch with batch gradient descent (no mini-batches within epoch); use learning rate 0.001 and Adam optimizer.
-- Return only the trained model object; do not return loss history, predictions, or auxiliary tensors.","Test 1
-Description: Model instantiation and forward pass produce correct output shape
-Input: logits = model(tokens)
-Expected: logits.shape == torch.Size([80, 3])
-Notes: Ensure no runtime errors and output matches expected dimensions.
+def build_and_train_mnist_cnn():
+    # Define transformations
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
+    
+    # Load MNIST
+    train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST('./data', train=False, transform=transform)
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+    
+    # TODO: Define MNIST_CNN class here
+    
+    # TODO: Initialize model, optimizer, loss
+    
+    # TODO: Implement 5-epoch training loop
+    
+    # TODO: Evaluate on test set and return final test accuracy as float
+    
+    return 0.0  # placeholder — replace with actual accuracy","A single float value representing the test accuracy (e.g., 0.987) achieved after 5 epochs of training, rounded to three decimal places.","- Use only `nn.Conv2d`, `nn.MaxPool2d`, `nn.Dropout`, `nn.ReLU`, `nn.Linear`, and `nn.Flatten`; no batch norm, adaptive pooling, or extra layers.
+- Each convolutional block must use kernel_size=3, stride=1, padding=1; max pooling must be 2×2 with stride=2.
+- Do not modify data preprocessing beyond the provided `transforms.Normalize`.
+- Training must run for exactly 5 epochs with no early stopping or learning rate scheduling.","Test 1
+Description: Verify final test accuracy is ≥ 0.975
+Expected: True if accuracy >= 0.975 else False
+Notes: Acceptable range reflects expected performance of this architecture on MNIST with given hyperparameters.
 
 Test 2
-Description: Model contains required submodules
-Input: hasattr(model, 'embedding') and hasattr(model, '_stack_lstm') and hasattr(model, '_buffer_lstm')
-Expected: True
-Notes: Student must define named LSTM modules (e.g., _stack_lstm, _buffer_lstm) — verify existence via hasattr.
+Description: Confirm model has exactly two conv→relu→pool→dropout blocks before the final linear layer
+Expected: Model.named_children() yields exactly 2 'block' modules (or equivalent sequential structure) followed by Flatten and Linear(?, 10)
+Notes: Use print(list(model.named_children())) to verify layer count and order.",Python,PyTorch,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P05,1
+B0020,Add weight regularization,Optimization,intermediate,model revision,"Add L2 weight regularization to the large baseline network and compare its behavior against the earlier unregularized models. In tf.keras, weight regularization is added by passing regularizer instances to layers as keyword arguments. Add L2 weight regularization and train the resulting model using the same compile_and_fit procedure as before.","l2_model = tf.keras.Sequential([
+    layers.Dense(512, activation='elu',
+                 kernel_regularizer=regularizers.l2(0.001),
+                 input_shape=(FEATURES,)),
+    layers.Dense(512, activation='elu',
+                 kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(512, activation='elu',
+                 kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(512, activation='elu',
+                 kernel_regularizer=regularizers.l2(0.001)),
+    layers.Dense(1)
+])
+
+regularizer_histories['l2'] = compile_and_fit(l2_model, 'regularizers/l2')",A trained L2-regularized model and comparison plots or observations showing that the regularized model behaves more competitively with the Tiny baseline and is more resistant to overfitting than the unregularized Large model.,"- Use the same training configuration and compile_and_fit procedure as earlier models in the tutorial.
+- Apply L2 regularization through the kernel_regularizer argument.
+- Compare the resulting learning behavior against the earlier baseline models.",,Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,2
+B0038,RNN Model,RNN,intermediate,code completion,"The forward method below defines how to compute the output and hidden state at any time step, given the current input and the state of the model at the previous time step. Note that the RNN model loops through the outermost dimension of inputs, updating the hidden state one time step at a time. The model here uses a tanh activation function.","@d2l.add_to_class(RNNScratch)
+def forward(self, inputs, state=None):
+    if state is None:
+        # Initial state with shape: (batch_size, num_hiddens)
+        if tab.selected('mxnet'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens), ctx=inputs.ctx)
+        if tab.selected('pytorch'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens), device=inputs.device)
+        if tab.selected('tensorflow'):
+            state = d2l.zeros((inputs.shape[1], self.num_hiddens))
+    else:
+        state, = state
+        if tab.selected('tensorflow'):
+            state = d2l.reshape(state, (-1, self.num_hiddens))
+    outputs = []
+    for X in inputs:
+        state = ______________________________
+        outputs.append(state)
+    return outputs, state","A completed forward method that correctly computes the hidden state at each time step and returns outputs, state.","- Loop through the outermost dimension of inputs one time step at a time.
+- Update the hidden state using the current input and previous state.
+- Use a tanh activation function.
+- Return both outputs and the final state.",,Python,PyTorch / MXNet / TensorFlow,15,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,3
+B0043,Build a Bidirectional LSTM Model for IMDB Sentiment Classification,RNN,intermediate,model building,"Construct a Keras model that classifies movie review sentiment (positive/negative) using the IMDB dataset. Your model must use a bidirectional LSTM layer after embedding, followed by a dense output layer with sigmoid activation. Compile the model using binary crossentropy loss and the Adam optimizer. Train it for exactly 5 epochs with batch size 32, and return the trained model object.","import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import imdb
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+# Load and preprocess IMDB data (already tokenized)
+max_features = 10000
+maxlen = 200
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+x_train = pad_sequences(x_train, maxlen=maxlen)
+x_test = pad_sequences(x_test, maxlen=maxlen)
+
+# Define your model below — do NOT modify above this line
+model = models.Sequential([
+    # Embedding layer (input_dim=max_features, output_dim=128, input_length=maxlen)
+    # Bidirectional LSTM layer (units=64, dropout=0.2, recurrent_dropout=0.2)
+    # Dense layer (units=1, activation='sigmoid')
+])
+
+# Compile the model
+# Train the model for 5 epochs, batch_size=32
+# Return 'model' at the end","A fully built, compiled, and trained Keras Sequential model object capable of binary sentiment classification on padded IMDB sequences.","- Use exactly one Embedding layer followed by one Bidirectional(LSTM(...)) layer
+- Do not add additional RNN or dense layers beyond those specified
+- Use binary crossentropy loss and Adam optimizer
+- Train for exactly 5 epochs with batch_size=32
+- Do not preprocess labels or apply custom callbacks","Test 1
+Description: Model is callable on a batch of test sequences
+Input: model.predict(x_test[:1]).shape
+Expected: (1, 1)
+Notes: Output must be a 2D array with shape (1, 1)
+
+Test 2
+Description: Model has exactly three layers: Embedding, Bidirectional(LSTM), Dense
+Input: len(model.layers)
+Expected: 3
+Notes: No extra or missing layers
 
 Test 3
-Description: Forward pass gradients flow through all parameters
-Input: logits.sum().backward(); all(p.grad is not None for p in model.parameters())
+Description: Second layer is Bidirectional and wraps an LSTM
+Input: isinstance(model.layers[1], tf.keras.layers.Bidirectional) and isinstance(model.layers[1].layer, tf.keras.layers.LSTM)
 Expected: True
-Notes: All parameters must receive non-None gradients after backward pass.",Python,PyTorch,0,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,2
+Notes: Bidirectional wrapper must contain LSTM",Python,Keras / TensorFlow,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P05,4

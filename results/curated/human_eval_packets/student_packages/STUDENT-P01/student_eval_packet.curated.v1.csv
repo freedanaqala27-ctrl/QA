@@ -1,48 +1,4 @@
 blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
-B0028,Convolution: Naive Forward Pass,CNN,intermediate,code completion,"The core of a convolutional network is the convolution operation. In the file cs231n/layers.py, implement the forward pass for the convolution layer in the function conv_forward_naive.
-
-You don't have to worry too much about efficiency at this point; just write the code in whatever way you find most clear.
-
-You can test your implementation by running the following:","def conv_forward_naive(x, w, b, conv_param):
-    """"""A naive implementation of the forward pass for a convolutional layer.
-
-    The input consists of N data points, each with C channels, height H and
-    width W. We convolve each input with F different filters, where each filter
-    spans all C channels and has height HH and width WW.
-
-    Input:
-    - x: Input data of shape (N, C, H, W)
-    - w: Filter weights of shape (F, C, HH, WW)
-    - b: Biases, of shape (F,)
-    - conv_param: A dictionary with the following keys:
-      - 'stride': The number of pixels between adjacent receptive fields in the
-        horizontal and vertical directions.
-      - 'pad': The number of pixels that will be used to zero-pad the input.
-
-    During padding, 'pad' zeros should be placed symmetrically (i.e equally on both sides)
-    along the height and width axes of the input. Be careful not to modify the original
-    input x directly.
-
-    Returns a tuple of:
-    - out: Output data, of shape (N, F, H', W') where H' and W' are given by
-      H' = 1 + (H + 2 * pad - HH) / stride
-      W' = 1 + (W + 2 * pad - WW) / stride
-    - cache: (x, w, b, conv_param)
-    """"""
-    out = None
-    ###########################################################################
-    # TODO: Implement the convolutional forward pass.                         #
-    # Hint: you can use the function np.pad for padding.                      #
-    ###########################################################################
-    #                                                                         #
-    ###########################################################################
-    # END OF YOUR CODE                                                        #
-    ###########################################################################
-    cache = (x, w, b, conv_param)
-    return out, cache","Return a tuple (out, cache) where out has shape (N, F, H', W') with H' = 1 + (H + 2 * pad - HH) / stride and W' = 1 + (W + 2 * pad - WW) / stride, and cache = (x, w, b, conv_param).","- You don't have to worry too much about efficiency at this point; just write the code in whatever way you find most clear.
-- During padding, 'pad' zeros should be placed symmetrically (i.e equally on both sides) along the height and width axes of the input.
-- Be careful not to modify the original input x directly.
-- Hint: you can use the function np.pad for padding.",,Python,NumPy,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,1
 B0044,Convolutional Layer Forward Pass with Explicit Padding and Stride,CNN,intermediate,code completion,"Implement the forward pass of a 2D convolutional layer using NumPy. Given an input tensor of shape (N, C, H, W), a filter tensor of shape (F, C, HH, WW), scalar padding (p), and stride (s), compute the output activation tensor. Assume zero-padding is applied uniformly to all four sides of each input channel. The output shape must follow the standard convolution formula: H_out = 1 + (H + 2*p - HH) // s, W_out = 1 + (W + 2*p - WW) // s. You must not use any built-in convolution functions (e.g., scipy.signal.convolve2d or torch.nn.functional.conv2d); implement it manually using nested loops over batches, output channels, and spatial locations.","import numpy as np
 
 def conv_forward_naive(x, w, b, pad, stride):
@@ -94,178 +50,100 @@ Test 3
 Description: Ensure padded region contributes zeros at boundaries when pad > 0.
 Input: x = np.array([[[[1.0]]]]); w = np.array([[[[1.0]]]]); b = np.array([0.0]); pad = 1; stride = 1
 Expected: out.shape == (1, 1, 3, 3) and out[0, 0, 0, 0] == 0.0
-Notes: Input becomes 3x3 after padding; top-left output is convolution over padded corner (zeros only).",Python,NumPy,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,2
-B0022,Demonstrate overfitting,Optimization,beginner-intermediate,training-analysis,"The simplest way to prevent overfitting is to start with a small model. To check if you can beat the performance of the small model, progressively train some larger models. Try two hidden layers with 16 units each. Then try three hidden layers with 64 units each. As an exercise, create an even larger model and check how quickly it begins overfitting. Plot the training and validation losses and compare how validation behavior changes with model capacity.","def compile_and_fit(model, name, optimizer=None, max_epochs=10000):
-    if optimizer is None:
-        optimizer = get_optimizer()
-    model.compile(
-        optimizer=optimizer,
-        loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        metrics=[
-            tf.keras.metrics.BinaryCrossentropy(from_logits=True, name='binary_crossentropy'),
-            'accuracy'
-        ]
-    )
-    model.summary()
-    history = model.fit(
-        train_ds,
-        steps_per_epoch=STEPS_PER_EPOCH,
-        epochs=max_epochs,
-        validation_data=validate_ds,
-        callbacks=get_callbacks(name),
-        verbose=0
-    )
-    return history",Training and validation loss curves showing that the Tiny model usually avoids overfitting while larger models overfit more quickly.,"- Each model uses the same training configuration.
-- Plot and compare validation metrics to training metrics.
-- Use a log-scale plot for the large model when needed.",,Python,tf.keras,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P01,3
-B0036,Analyze Overfitting Across Model Sizes Using Binary Classification Curves,Optimization,beginner-intermediate,training-analysis,"Using the provided starter code, train four tf.keras.Sequential binary classifiers—Tiny (2 layers, 4 units each), Small (2 layers, 16 units), Medium (3 layers, 32 units), and Large (4 layers, 64 units)—on the same synthetic imbalanced binary dataset (generated in-starter). Plot training and validation binary cross-entropy loss curves for all four models on a single figure. Then, for each model, identify and report: (i) the epoch at which validation loss stops improving (i.e., first epoch where validation loss is >= validation loss at all prior epochs), and (ii) whether validation loss increases for ≥5 consecutive epochs after that point (indicating clear overfitting). Your analysis must be based solely on the plotted curves and computed metrics.","import numpy as np
-import tensorflow as tf
-import matplotlib.pyplot as plt
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-
-tf.random.set_seed(42)
-np.random.seed(42)
-
-# Generate synthetic binary classification dataset
-X, y = make_classification(
-    n_samples=2000,
-    n_features=20,
-    n_informative=10,
-    n_redundant=5,
-    n_clusters_per_class=1,
-    weights=[0.85, 0.15],  # imbalanced
-    random_state=42
-)
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, stratify=y, random_state=42)
-
-# Normalize features
-mean, std = X_train.mean(axis=0), X_train.std(axis=0)
-X_train = (X_train - mean) / std
-X_val = (X_val - mean) / std
-
-# Define model architectures as functions
-def build_tiny_model():
-    return tf.keras.Sequential([
-        tf.keras.layers.Dense(4, activation='relu', input_shape=(20,)),
-        tf.keras.layers.Dense(4, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
-
-def build_small_model():
-    return tf.keras.Sequential([
-        tf.keras.layers.Dense(16, activation='relu', input_shape=(20,)),
-        tf.keras.layers.Dense(16, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
-
-def build_medium_model():
-    return tf.keras.Sequential([
-        tf.keras.layers.Dense(32, activation='relu', input_shape=(20,)),
-        tf.keras.layers.Dense(32, activation='relu'),
-        tf.keras.layers.Dense(32, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
-
-def build_large_model():
-    return tf.keras.Sequential([
-        tf.keras.layers.Dense(64, activation='relu', input_shape=(20,)),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
-
-# Compile and train each model (you will implement this)
-models = {
-    'Tiny': build_tiny_model(),
-    'Small': build_small_model(),
-    'Medium': build_medium_model(),
-    'Large': build_large_model()
-}
-
-# You will add training logic here — use 50 epochs, batch_size=32, binary_crossentropy, Adam optimizer
-# Store history objects in a dictionary: histories[model_name] = history
-histories = {}
-
-# Plot setup
-plt.figure(figsize=(10, 6))
-","A single matplotlib figure showing training and validation binary cross-entropy loss curves for all four models (labeled clearly), plus a structured text summary listing for each model: (1) the stagnation epoch (as integer), and (2) a boolean 'overfits' flag (True if validation loss rises ≥5 consecutive epochs post-stagnation, else False).","- Use exactly 50 training epochs for all models.
-- Use binary cross-entropy loss and Adam optimizer with default learning rate.
-- Do not apply regularization (e.g., dropout or L2) or early stopping.
-- Plot all four validation loss curves and all four training loss curves on the same axes, using distinct line styles and a legend.
-- Report epoch numbers and overfitting status only from observed curve behavior — no extrapolation or heuristic smoothing.","Test 1
-Description: Verify plot contains exactly 8 lines (4 training + 4 validation), labeled in legend with correct model names and curve types.
-Expected: All eight curves are present, distinguishable by style/color, and correctly labeled in legend.
-
-Test 2
-Description: Confirm Tiny model's stagnation epoch is ≥35 and its 'overfits' flag is False.
-Expected: Tiny stagnation epoch ≥35 AND overfits == False
-Notes: Due to low capacity, Tiny typically plateaus late without degradation.
-
-Test 3
-Description: Confirm Large model's stagnation epoch is ≤20 and its 'overfits' flag is True.
-Expected: Large stagnation epoch ≤20 AND overfits == True
-Notes: High-capacity Large model usually overfits early on this dataset.",Python,tf.keras,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P01,4
-B0030,Build and train a 2-layer bidirectional LSTM on IMDB,RNN,intermediate,model building,"Build a text classification model for the IMDB movie review sentiment dataset. Use an embedding layer followed by two bidirectional LSTM layers and a dense sigmoid classifier, then train and evaluate the model on padded review sequences.","max_features = 20000
-maxlen = 200
-
-inputs = keras.Input(shape=(None,), dtype=""int32"")
-x = layers.Embedding(max_features, 128)(inputs)
-x = layers.Bidirectional(layers.LSTM(64, return_sequences=True))(x)
-x = layers.Bidirectional(layers.LSTM(64))(x)
-outputs = layers.Dense(1, activation=""sigmoid"")(x)
-model = keras.Model(inputs, outputs)
-
-(x_train, y_train), (x_val, y_val) = keras.datasets.imdb.load_data(num_words=max_features)
-x_train = keras.utils.pad_sequences(x_train, maxlen=maxlen)
-x_val = keras.utils.pad_sequences(x_val, maxlen=maxlen)
-
-model.compile(optimizer=""adam"", loss=""binary_crossentropy"", metrics=[""accuracy""])
-model.fit(x_train, y_train, batch_size=32, epochs=2, validation_data=(x_val, y_val))
-",A trained Keras model for IMDB sentiment classification with validation accuracy and loss reported after training.,"- Use the IMDB dataset loaded with num_words=max_features.
-- Pad input sequences to maxlen=200.
-- Use two bidirectional LSTM layers.
-- Use a sigmoid output for binary sentiment classification.",,Python,Keras / TensorFlow,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,5
-B0043,Build a Bidirectional LSTM Model for IMDB Sentiment Classification,RNN,intermediate,model building,"Construct a Keras model that classifies movie review sentiment (positive/negative) using the IMDB dataset. Your model must use a bidirectional LSTM layer after embedding, followed by a dense output layer with sigmoid activation. Compile the model using binary crossentropy loss and the Adam optimizer. Train it for exactly 5 epochs with batch size 32, and return the trained model object.","import tensorflow as tf
-from tensorflow.keras import layers, models
-from tensorflow.keras.datasets import imdb
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-
-# Load and preprocess IMDB data (already tokenized)
-max_features = 10000
-maxlen = 200
-(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
-x_train = pad_sequences(x_train, maxlen=maxlen)
-x_test = pad_sequences(x_test, maxlen=maxlen)
-
-# Define your model below — do NOT modify above this line
-model = models.Sequential([
-    # Embedding layer (input_dim=max_features, output_dim=128, input_length=maxlen)
-    # Bidirectional LSTM layer (units=64, dropout=0.2, recurrent_dropout=0.2)
-    # Dense layer (units=1, activation='sigmoid')
+Notes: Input becomes 3x3 after padding; top-left output is convolution over padded corner (zeros only).",Python,NumPy,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,1
+B0016,Add dropout,Optimization,intermediate,model revision,"Add dropout layers to the large baseline network to examine how dropout reduces overfitting. In Keras, introduce dropout through tf.keras.layers.Dropout, applied to the output of the preceding layer. Add dropout layers to the network and train the resulting model using the same compile_and_fit procedure as before.","dropout_model = tf.keras.Sequential([
+    layers.Dense(512, activation='elu', input_shape=(FEATURES,)),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(512, activation='elu'),
+    layers.Dropout(0.5),
+    layers.Dense(1)
 ])
 
-# Compile the model
-# Train the model for 5 epochs, batch_size=32
-# Return 'model' at the end","A fully built, compiled, and trained Keras Sequential model object capable of binary sentiment classification on padded IMDB sequences.","- Use exactly one Embedding layer followed by one Bidirectional(LSTM(...)) layer
-- Do not add additional RNN or dense layers beyond those specified
-- Use binary crossentropy loss and Adam optimizer
-- Train for exactly 5 epochs with batch_size=32
-- Do not preprocess labels or apply custom callbacks","Test 1
-Description: Model is callable on a batch of test sequences
-Input: model.predict(x_test[:1]).shape
-Expected: (1, 1)
-Notes: Output must be a 2D array with shape (1, 1)
+regularizer_histories['dropout'] = compile_and_fit(dropout_model, 'regularizers/dropout')",A trained dropout-regularized model and comparison plots or observations showing improved behavior relative to the unregularized Large model.,"- Use the same training configuration and compile_and_fit procedure as earlier models in the tutorial.
+- Introduce dropout through tf.keras.layers.Dropout.
+- Compare the resulting model against the Tiny baseline and earlier regularization variants.",,Python,tf.keras,20,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,2
+B0002,Build a Character-Level Seq2Seq Model with Teacher Forcing,RNN,intermediate,model building,"Implement a character-level sequence-to-sequence model using LSTM layers in Keras to translate short English words into their Pig Latin equivalents (e.g., 'hello' → 'ellohay', 'apple' → 'appleway'). Your implementation must include: (1) an encoder LSTM that processes the input word and returns its final hidden state; (2) a decoder LSTM initialized with the encoder’s final state, trained with teacher forcing (i.e., feeding the true previous character token as input at each timestep); (3) a dense output layer with softmax over the character vocabulary. Use one-hot encoded inputs/outputs for characters from a fixed vocabulary of 27 symbols (a–z + space). Train for exactly 10 epochs on the provided synthetic dataset (generated inline), and return the compiled Keras Model object.","import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# Vocabulary: 26 lowercase letters + space
+chars = 'abcdefghijklmnopqrstuvwxyz '
+char_indices = {ch: i for i, ch in enumerate(chars)}
+indices_char = {i: ch for i, ch in enumerate(chars)}
+vocab_size = len(chars)
+max_len = 12
+
+# Helper: convert word to one-hot tensor of shape (max_len, vocab_size)
+def word_to_onehot(word):
+    x = np.zeros((max_len, vocab_size))
+    for t, ch in enumerate(word[:max_len]):
+        if ch in char_indices:
+            x[t, char_indices[ch]] = 1.0
+    return x
+
+# Synthetic data generation (50 English→PigLatin pairs)
+def generate_sample_data():
+    pairs = [
+        ('hello', 'ellohay'), ('world', 'orldway'), ('apple', 'appleway'),
+        ('orange', 'angeoray'), ('eat', 'eatway'), ('under', 'underway'),
+        ('ice', 'iceway'), ('object', 'jectobay'), ('python', 'onpythay'),
+        ('train', 'aintray')
+    ] * 5
+    # Pad both sides to max_len
+    encoder_inputs = np.array([word_to_onehot(p[0]) for p in pairs])
+    decoder_inputs = np.array([word_to_onehot(' ' + p[1]) for p in pairs])  # teacher forcing: prepend ' '
+    decoder_targets = np.array([word_to_onehot(p[1] + ' ') for p in pairs])  # shift right
+    return encoder_inputs, decoder_inputs, decoder_targets
+
+encoder_inputs, decoder_inputs, decoder_targets = generate_sample_data()
+
+# TODO: Define your encoder-decoder model below.
+# - Encoder: LSTM returning state (not sequences)
+# - Decoder: LSTM taking initial_state from encoder, with teacher-forced inputs
+# - Output: Dense + softmax over vocab_size, applied timestep-wise
+# Compile with 'categorical_crossentropy' and 'adam'
+# Return the compiled model as `model`.
+","A compiled Keras Model object (`model`) with input tensors matching encoder_inputs.shape[1:] and decoder_inputs.shape[1:], and output matching decoder_targets.shape[1:], trainable and ready for `model.fit()`.","- Use exactly one LSTM layer for encoder and one for decoder (no stacked LSTMs)
+- Encoder must return only the final hidden and cell states (return_state=True), not sequences
+- Decoder must be initialized with encoder's final states and consume teacher-forced inputs (decoder_inputs)
+- Output layer must apply Dense(vocab_size) + Softmax *timestep-wise* (use TimeDistributed)
+- Do not modify the provided data generation or preprocessing functions","Test 1
+Description: Model is callable and accepts encoder/decoder inputs
+Input: model(encoder_inputs[:1], decoder_inputs[:1])
+Expected: A tensor of shape (1, max_len, vocab_size) with values in [0,1] summing to 1 along last axis
+Notes: Check output shape and softmax constraint
 
 Test 2
-Description: Model has exactly three layers: Embedding, Bidirectional(LSTM), Dense
-Input: len(model.layers)
-Expected: 3
-Notes: No extra or missing layers
+Description: Model has exactly two LSTM layers (one encoder, one decoder)
+Input: len([l for l in model.layers if isinstance(l, tf.keras.layers.LSTM)])
+Expected: 2
 
 Test 3
-Description: Second layer is Bidirectional and wraps an LSTM
-Input: isinstance(model.layers[1], tf.keras.layers.Bidirectional) and isinstance(model.layers[1].layer, tf.keras.layers.LSTM)
-Expected: True
-Notes: Bidirectional wrapper must contain LSTM",Python,Keras / TensorFlow,30,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,6
+Description: Model is compiled with categorical_crossentropy loss
+Input: model.loss
+Expected: 'categorical_crossentropy'
+Notes: String match expected",Python,Keras / TensorFlow,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P01,3
+B0046,Implement CausalAttention.forward,Transformer,intermediate-advanced,code completion,"In this part of the question we will implement a transformer in the model_solution.py file. The file contains a number of different classes that you will implement. In the end, you will have an implementation of the Transformer class with functioning forward and generate methods. Implement CausalAttention.forward and check that you pass the corresponding test.","class CausalAttention(nn.Module):
+    def __init__(self, config: ModelConfig):
+        super().__init__()
+        assert config.d_model % config.n_heads == 0
+        self.d_attention = int(config.d_model / config.n_heads)
+        self.W_k = nn.Linear(config.d_model, self.d_attention * config.n_heads)
+        self.W_q = nn.Linear(config.d_model, self.d_attention * config.n_heads)
+        self.W_v = nn.Linear(config.d_model, self.d_attention * config.n_heads)
+        self.W_o = nn.Linear(self.d_attention * config.n_heads, config.d_model)
+        self.register_buffer(
+            'causal_mask',
+            torch.tril(torch.ones(config.context_length, config.context_length)).view(1, 1, config.context_length, config.context_length),
+            persistent=False
+        )
+
+    def forward(self, x):
+        # TODO, complete
+        return torch.empty(1)",A working implementation of CausalAttention.forward in model_solution.py.,"- Do not edit the unit test file; tests will be run separately during grading.
+- Check that you pass the corresponding test.","Test 1
+Description: tests/test_student.py::test_attention compares attention(attention_input) against snapshots/attention_output.npy with atol=1e-5.",Python,PyTorch,60,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P01,4

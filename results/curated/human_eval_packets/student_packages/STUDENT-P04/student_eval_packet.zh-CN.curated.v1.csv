@@ -1,0 +1,133 @@
+blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
+B0042,使用 Keras 构建最简 MNIST 卷积网络,CNN,beginner,model building,请使用 Keras 构建一个紧凑的卷积神经网络，用于 MNIST 手写数字分类。模型必须包含两层 `Conv2D`（每层后接 ReLU 和 `MaxPooling2D`）、一层 `Flatten`、一层带 ReLU 的隐藏层，以及一个 10 类 softmax 输出层。使用 categorical crossentropy 和 Adam 编译模型，并训练 5 个 epoch，最后返回训练好的 `model`。,"import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
+# Load and preprocess MNIST
+def load_and_preprocess_mnist():
+    (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+    x_train = x_train.astype('float32') / 255.0
+    x_train = x_train.reshape(-1, 28, 28, 1)
+    y_train = keras.utils.to_categorical(y_train, 10)
+    return x_train, y_train
+
+x_train, y_train = load_and_preprocess_mnist()
+
+# Build your model below — do NOT modify above
+model = None  # Replace this line with your Sequential model",一个已经定义、编译并在 MNIST 上训练 5 个 epoch 的 Keras Sequential 模型对象 `model`。,"- 只能使用 Keras Sequential API。
+- 两个卷积层固定为 32 / 64 个 filter，3×3 卷积核，`same` padding。
+- 不要使用 Dropout 或 BatchNormalization。
+- 不进行数据增强。
+- 使用 batch_size=128，训练 5 个 epoch。","测试 1：`model` 应是 `keras.models.Sequential` 实例。
+
+测试 2：模型应恰好有 7 层。
+
+测试 3：最后一层应为 10 单元 softmax。
+
+测试 4：第 5 个 epoch 的训练准确率应达到合理水平（约 97.5% 及以上）。",Python,Keras / TensorFlow,25,beginner,,formal,,,,,,,,,,,,STUDENT-P04,1
+B0022,展示过拟合现象,优化与训练分析,beginner-intermediate,training-analysis,请基于给定模型和训练设置，运行实验并展示模型发生过拟合的现象，说明训练集与验证集表现的差异。,"def compile_and_fit(model, name, optimizer=None, max_epochs=10000):
+    if optimizer is None:
+        optimizer = get_optimizer()
+    model.compile(
+        optimizer=optimizer,
+        loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+        metrics=[
+            tf.keras.metrics.BinaryCrossentropy(from_logits=True, name='binary_crossentropy'),
+            'accuracy'
+        ]
+    )
+    model.summary()
+    history = model.fit(
+        train_ds,
+        steps_per_epoch=STEPS_PER_EPOCH,
+        epochs=max_epochs,
+        validation_data=validate_ds,
+        callbacks=get_callbacks(name),
+        verbose=0
+    )
+    return history",一组能够体现过拟合现象的训练结果、曲线或简短分析说明。,"- 保持给定模型结构与训练设置。
+- 需要展示训练集与验证集的差异。
+- 分析应围绕过拟合现象本身。",,Python,tf.keras,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P04,2
+B0005,补全音乐生成 RNN Cell 的前向传播,RNN,intermediate,code completion,请完成一个自定义 PyTorch RNN cell 的 `forward` 方法，用于处理音乐序列的单个时间步。输入是当前音符的 embedding 和上一个隐藏状态，输出是更新后的隐藏状态以及对整个音符词表的 logits。默认这是自回归生成场景：时刻 t 的 logits 会用于采样下一个音符。除 `forward` 外，不要修改类中的其他部分。,"import torch
+import torch.nn as nn
+
+class MusicRNNCell(nn.Module):
+    def __init__(self, input_size, hidden_size, vocab_size):
+        super().__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.vocab_size = vocab_size
+        
+        # Learnable parameters
+        self.W_ih = nn.Parameter(torch.randn(input_size, hidden_size) * 0.01)
+        self.W_hh = nn.Parameter(torch.randn(hidden_size, hidden_size) * 0.01)
+        self.b_h = nn.Parameter(torch.zeros(hidden_size))
+        self.W_ho = nn.Parameter(torch.randn(hidden_size, vocab_size) * 0.01)
+        self.b_o = nn.Parameter(torch.zeros(vocab_size))
+
+    def forward(self, x_t, h_prev):
+        """"""
+        Args:
+            x_t (torch.Tensor): Input note embedding at time t, shape (batch_size, input_size)
+            h_prev (torch.Tensor): Previous hidden state, shape (batch_size, hidden_size)
+        Returns:
+            h_t (torch.Tensor): Updated hidden state, shape (batch_size, hidden_size)
+            logits (torch.Tensor): Output logits over vocabulary, shape (batch_size, vocab_size)
+        """"""
+        # TODO: Compute h_t using tanh( x_t @ W_ih + h_prev @ W_hh + b_h )
+        # TODO: Compute logits using h_t @ W_ho + b_o
+        # Return both h_t and logits
+        pass
+","返回两个张量：1）更新后的隐藏状态 `h_t`，形状为 `(batch_size, hidden_size)`；2）输出 logits，形状为 `(batch_size, vocab_size)`。","- 非线性只能使用 `torch.nn.functional.tanh`。
+- 不要使用 `nn.RNN`、`nn.LSTM` 等内置循环模块。
+- 除矩阵乘法所需操作外，不要额外 reshape、transpose 或 permute。
+- 计算必须支持任意 batch 大小。","测试 1：检查 `h_t` 与 `logits` 的输出形状是否正确。
+
+测试 2：在固定随机种子下，输出应可复现。
+
+测试 3：隐藏状态应经过 tanh，取值位于 `(-1, 1)` 之间。",Python,PyTorch,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,3
+B0033,实现神经转移式依存句法分析器,RNN,intermediate,model building,请在 `parser_model.py` 中实现一个基于神经网络的依存句法分析器，并在 `run.py` 中补全训练相关函数。模型通过提取当前状态的特征向量、查词向量、拼接输入，再经过前馈网络和 softmax 输出动作概率。完成 `init`、`embedding_lookup`、`forward`、`train_for_epoch` 和 `train` 后，运行 `python run.py` 进行训练，并在 Penn Treebank（Universal Dependencies 标注）上评估 UAS。,,一个可运行的依存句法分析器实现，包括 `parser_model.py` 与 `run.py` 中所需函数，并报告 dev 集最佳 UAS 以及 test 集 UAS。,"- 不要使用 `torch.nn.Linear` 或 `torch.nn.Embedding`。
+- 如果 TODO 中有命名要求，请遵守。
+- 实现 `embedding_lookup` 时尽量使用高效写法，避免不必要的 for 循环。","测试 1：运行 `embedding_lookup` 的 sanity check。
+
+测试 2：运行 `forward` 的 sanity check。
+
+测试 3：debug 模式下，期望 dev loss < 0.2 且 dev UAS > 65。
+
+测试 4：完整训练下，期望 train loss < 0.08 且 dev UAS > 87。",Python,PyTorch,,intermediate,,formal,,,,,,,,,,,,STUDENT-P04,4
+B0031,实现缩放点积注意力与多头注意力,Transformer,intermediate-advanced,code completion,在 UvA Deep Learning Tutorial 6 的对应部分中，实现缩放点积注意力和多头注意力模块。具体需要完成：根据 queries 和 keys 计算注意力 logits，做缩放与掩码，softmax 归一化后加权 values；然后完成 MultiheadAttention 模块中的 Q/K/V 投影、分头、应用注意力、拼接多头结果以及输出投影。,"def scaled_dot_product(q, k, v, mask=None):
+    d_k = q.size()[-1]
+    attn_logits = torch.matmul(q, k.transpose(-2, -1))
+    attn_logits = attn_logits / math.sqrt(d_k)
+    if mask is not None:
+        attn_logits = attn_logits.masked_fill(mask == 0, -9e15)
+    attention = F.softmax(attn_logits, dim=-1)
+    values = torch.matmul(attention, v)
+    return values, attention
+
+
+def expand_mask(mask):
+    assert mask.ndim >= 2, ""Mask must be at least 2-dimensional with seq_length x seq_length""
+    if mask.ndim == 3:
+        mask = mask.unsqueeze(1)
+    while mask.ndim < 4:
+        mask = mask.unsqueeze(0)
+    return mask
+
+
+class MultiheadAttention(nn.Module):
+    def __init__(self, input_dim, embed_dim, num_heads):
+        super().__init__()
+        assert embed_dim % num_heads == 0
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        self.qkv_proj = nn.Linear(input_dim, 3 * embed_dim)
+        self.o_proj = nn.Linear(embed_dim, input_dim)
+
+    def forward(self, x, mask=None, return_attention=False):
+        # implement multi-head attention
+        pass",一个可运行的缩放点积注意力实现，以及支持掩码、多头和返回注意力图的 `MultiheadAttention` 模块。,"- 仅实现 Tutorial 6 中“Scaled Dot Product Attention”和“Multi-Head Attention”这部分。
+- 不要扩展到 Transformer Encoder、位置编码或完整实验流程。
+- 需要实现 Q/K/V 投影、分头、mask、softmax、拼接和输出投影。
+- 任务粒度保持在模块级，不要做成完整 Transformer 项目。",,Python,PyTorch / PyTorch Lightning,45,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P04,5

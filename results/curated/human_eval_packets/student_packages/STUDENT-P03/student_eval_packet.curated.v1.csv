@@ -1,125 +1,187 @@
 blind_exercise_id,title,topic,difficulty,exercise_type,instruction_text,starter_code,expected_output,constraints_text,test_cases_text,programming_language,framework,estimated_time_minutes,target_learner_level,notes_for_evaluator,dataset_split,rating_id,student_id,goal_orientation,support_sufficiency,course_relevance,learning_helpfulness,intrinsic_load,extraneous_load,active_engagement,mental_effort,notes,package_id,display_order
-B0024,Implement a character-level recurrent seq2seq translator,RNN,intermediate,model building,"Implement a basic character-level recurrent sequence-to-sequence model for translating short English sentences into short French sentences. Build an encoder LSTM that returns its final states, then build a decoder LSTM initialized with the encoder states, followed by a dense softmax layer. Train the model on vectorized character sequences and use the trained model for decoding.","encoder_inputs = keras.Input(shape=(None, num_encoder_tokens))
-encoder = keras.layers.LSTM(latent_dim, return_state=True)
-encoder_outputs, state_h, state_c = encoder(encoder_inputs)
-encoder_states = [state_h, state_c]
+B0041,"Build, train, and evaluate a simple MNIST convnet",CNN,beginner,model building,"Build the Keras Sequential convnet for MNIST using two Conv2D layers, two MaxPooling2D layers, Flatten, Dropout, and a Dense softmax classifier. Train the model for 15 epochs with categorical_crossentropy and Adam, then evaluate the trained model on the test set.","model = keras.Sequential([
+    keras.Input(shape=input_shape),
+    layers.Conv2D(32, kernel_size=(3, 3), activation='relu'),
+    layers.MaxPooling2D(pool_size=(2, 2)),
+    layers.Conv2D(64, kernel_size=(3, 3), activation='relu'),
+    layers.MaxPooling2D(pool_size=(2, 2)),
+    layers.Flatten(),
+    layers.Dropout(0.5),
+    layers.Dense(num_classes, activation='softmax'),
+])
 
-decoder_inputs = keras.Input(shape=(None, num_decoder_tokens))
-decoder_lstm = keras.layers.LSTM(latent_dim, return_sequences=True, return_state=True)
-decoder_outputs, _, _ = decoder_lstm(decoder_inputs, initial_state=encoder_states)
-decoder_dense = keras.layers.Dense(num_decoder_tokens, activation=""softmax"")
-decoder_outputs = decoder_dense(decoder_outputs)
-
-model = keras.Model([encoder_inputs, decoder_inputs], decoder_outputs)
-model.compile(optimizer=""rmsprop"", loss=""categorical_crossentropy"", metrics=[""accuracy""])
-model.fit(
-    [encoder_input_data, decoder_input_data],
-    decoder_target_data,
-    batch_size=batch_size,
-    epochs=epochs,
-    validation_split=0.2,
-)
-",A trained character-level seq2seq model that maps short English sentences to short French sentences and can be used for decoding at inference time.,"- Use a character-level encoder-decoder architecture.
-- Use an encoder LSTM with return_state=True.
-- Initialize the decoder LSTM with the encoder states.
-- Use a dense softmax layer over the decoder outputs.",,Python,Keras / TensorFlow,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P03,1
-B0002,Build a Character-Level Seq2Seq Model with Teacher Forcing,RNN,intermediate,model building,"Implement a character-level sequence-to-sequence model using LSTM layers in Keras to translate short English words into their Pig Latin equivalents (e.g., 'hello' → 'ellohay', 'apple' → 'appleway'). Your implementation must include: (1) an encoder LSTM that processes the input word and returns its final hidden state; (2) a decoder LSTM initialized with the encoder’s final state, trained with teacher forcing (i.e., feeding the true previous character token as input at each timestep); (3) a dense output layer with softmax over the character vocabulary. Use one-hot encoded inputs/outputs for characters from a fixed vocabulary of 27 symbols (a–z + space). Train for exactly 10 epochs on the provided synthetic dataset (generated inline), and return the compiled Keras Model object.","import numpy as np
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.fit(x_train, y_train, batch_size=128, epochs=15, validation_split=0.1)",A trained MNIST convnet with test accuracy around 99% and reported test loss/test accuracy from model.evaluate.,"- Use the MNIST dataset from keras.datasets.mnist.
+- Use the architecture shown in the example.
+- Train with categorical_crossentropy and Adam.
+- Evaluate on the test set.",,Python,Keras / TensorFlow,25,beginner,,formal,,,,,,,,,,,,STUDENT-P03,1
+B0036,Analyze Overfitting Across Model Sizes Using Binary Classification Curves,Optimization,beginner-intermediate,training-analysis,"Using the provided starter code, train four tf.keras.Sequential binary classifiers—Tiny (2 layers, 4 units each), Small (2 layers, 16 units), Medium (3 layers, 32 units), and Large (4 layers, 64 units)—on the same synthetic imbalanced binary dataset (generated in-starter). Plot training and validation binary cross-entropy loss curves for all four models on a single figure. Then, for each model, identify and report: (i) the epoch at which validation loss stops improving (i.e., first epoch where validation loss is >= validation loss at all prior epochs), and (ii) whether validation loss increases for ≥5 consecutive epochs after that point (indicating clear overfitting). Your analysis must be based solely on the plotted curves and computed metrics.","import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
 
-# Vocabulary: 26 lowercase letters + space
-chars = 'abcdefghijklmnopqrstuvwxyz '
-char_indices = {ch: i for i, ch in enumerate(chars)}
-indices_char = {i: ch for i, ch in enumerate(chars)}
-vocab_size = len(chars)
-max_len = 12
+tf.random.set_seed(42)
+np.random.seed(42)
 
-# Helper: convert word to one-hot tensor of shape (max_len, vocab_size)
-def word_to_onehot(word):
-    x = np.zeros((max_len, vocab_size))
-    for t, ch in enumerate(word[:max_len]):
-        if ch in char_indices:
-            x[t, char_indices[ch]] = 1.0
-    return x
+# Generate synthetic binary classification dataset
+X, y = make_classification(
+    n_samples=2000,
+    n_features=20,
+    n_informative=10,
+    n_redundant=5,
+    n_clusters_per_class=1,
+    weights=[0.85, 0.15],  # imbalanced
+    random_state=42
+)
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, stratify=y, random_state=42)
 
-# Synthetic data generation (50 English→PigLatin pairs)
-def generate_sample_data():
-    pairs = [
-        ('hello', 'ellohay'), ('world', 'orldway'), ('apple', 'appleway'),
-        ('orange', 'angeoray'), ('eat', 'eatway'), ('under', 'underway'),
-        ('ice', 'iceway'), ('object', 'jectobay'), ('python', 'onpythay'),
-        ('train', 'aintray')
-    ] * 5
-    # Pad both sides to max_len
-    encoder_inputs = np.array([word_to_onehot(p[0]) for p in pairs])
-    decoder_inputs = np.array([word_to_onehot(' ' + p[1]) for p in pairs])  # teacher forcing: prepend ' '
-    decoder_targets = np.array([word_to_onehot(p[1] + ' ') for p in pairs])  # shift right
-    return encoder_inputs, decoder_inputs, decoder_targets
+# Normalize features
+mean, std = X_train.mean(axis=0), X_train.std(axis=0)
+X_train = (X_train - mean) / std
+X_val = (X_val - mean) / std
 
-encoder_inputs, decoder_inputs, decoder_targets = generate_sample_data()
+# Define model architectures as functions
+def build_tiny_model():
+    return tf.keras.Sequential([
+        tf.keras.layers.Dense(4, activation='relu', input_shape=(20,)),
+        tf.keras.layers.Dense(4, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
 
-# TODO: Define your encoder-decoder model below.
-# - Encoder: LSTM returning state (not sequences)
-# - Decoder: LSTM taking initial_state from encoder, with teacher-forced inputs
-# - Output: Dense + softmax over vocab_size, applied timestep-wise
-# Compile with 'categorical_crossentropy' and 'adam'
-# Return the compiled model as `model`.
-","A compiled Keras Model object (`model`) with input tensors matching encoder_inputs.shape[1:] and decoder_inputs.shape[1:], and output matching decoder_targets.shape[1:], trainable and ready for `model.fit()`.","- Use exactly one LSTM layer for encoder and one for decoder (no stacked LSTMs)
-- Encoder must return only the final hidden and cell states (return_state=True), not sequences
-- Decoder must be initialized with encoder's final states and consume teacher-forced inputs (decoder_inputs)
-- Output layer must apply Dense(vocab_size) + Softmax *timestep-wise* (use TimeDistributed)
-- Do not modify the provided data generation or preprocessing functions","Test 1
-Description: Model is callable and accepts encoder/decoder inputs
-Input: model(encoder_inputs[:1], decoder_inputs[:1])
-Expected: A tensor of shape (1, max_len, vocab_size) with values in [0,1] summing to 1 along last axis
-Notes: Check output shape and softmax constraint
+def build_small_model():
+    return tf.keras.Sequential([
+        tf.keras.layers.Dense(16, activation='relu', input_shape=(20,)),
+        tf.keras.layers.Dense(16, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+def build_medium_model():
+    return tf.keras.Sequential([
+        tf.keras.layers.Dense(32, activation='relu', input_shape=(20,)),
+        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+def build_large_model():
+    return tf.keras.Sequential([
+        tf.keras.layers.Dense(64, activation='relu', input_shape=(20,)),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+# Compile and train each model (you will implement this)
+models = {
+    'Tiny': build_tiny_model(),
+    'Small': build_small_model(),
+    'Medium': build_medium_model(),
+    'Large': build_large_model()
+}
+
+# You will add training logic here — use 50 epochs, batch_size=32, binary_crossentropy, Adam optimizer
+# Store history objects in a dictionary: histories[model_name] = history
+histories = {}
+
+# Plot setup
+plt.figure(figsize=(10, 6))
+","A single matplotlib figure showing training and validation binary cross-entropy loss curves for all four models (labeled clearly), plus a structured text summary listing for each model: (1) the stagnation epoch (as integer), and (2) a boolean 'overfits' flag (True if validation loss rises ≥5 consecutive epochs post-stagnation, else False).","- Use exactly 50 training epochs for all models.
+- Use binary cross-entropy loss and Adam optimizer with default learning rate.
+- Do not apply regularization (e.g., dropout or L2) or early stopping.
+- Plot all four validation loss curves and all four training loss curves on the same axes, using distinct line styles and a legend.
+- Report epoch numbers and overfitting status only from observed curve behavior — no extrapolation or heuristic smoothing.","Test 1
+Description: Verify plot contains exactly 8 lines (4 training + 4 validation), labeled in legend with correct model names and curve types.
+Expected: All eight curves are present, distinguishable by style/color, and correctly labeled in legend.
 
 Test 2
-Description: Model has exactly two LSTM layers (one encoder, one decoder)
-Input: len([l for l in model.layers if isinstance(l, tf.keras.layers.LSTM)])
-Expected: 2
+Description: Confirm Tiny model's stagnation epoch is ≥35 and its 'overfits' flag is False.
+Expected: Tiny stagnation epoch ≥35 AND overfits == False
+Notes: Due to low capacity, Tiny typically plateaus late without degradation.
 
 Test 3
-Description: Model is compiled with categorical_crossentropy loss
-Input: model.loss
-Expected: 'categorical_crossentropy'
-Notes: String match expected",Python,Keras / TensorFlow,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P03,2
-B0031,Implement scaled dot-product attention and multi-head attention,Transformer,intermediate-advanced,code completion,"In UvA Deep Learning Tutorial 6: Transformers and Multi-Head Attention, implement the contiguous attention module section covering scaled dot-product attention and multi-head attention. Specifically, complete or reproduce the attention computation from the section beginning with 'Scaled Dot Product Attention' and continuing through the Multi-Head Attention implementation. The task includes computing attention logits from queries and keys, applying scaling and masking, normalizing with softmax, combining values, expanding masks to compatible dimensions, and implementing the MultiheadAttention module that projects Q/K/V, splits heads, applies scaled dot-product attention, concatenates heads, and applies the output projection.","def scaled_dot_product(q, k, v, mask=None):
-    d_k = q.size()[-1]
-    attn_logits = torch.matmul(q, k.transpose(-2, -1))
-    attn_logits = attn_logits / math.sqrt(d_k)
-    if mask is not None:
-        attn_logits = attn_logits.masked_fill(mask == 0, -9e15)
-    attention = F.softmax(attn_logits, dim=-1)
-    values = torch.matmul(attention, v)
-    return values, attention
+Description: Confirm Large model's stagnation epoch is ≤20 and its 'overfits' flag is True.
+Expected: Large stagnation epoch ≤20 AND overfits == True
+Notes: High-capacity Large model usually overfits early on this dataset.",Python,tf.keras,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P03,2
+B0011,Build a Stack-LSTM Transition Parser for Dependency Parsing,RNN,intermediate,model building,"Implement a transition-based dependency parser using a stack-LSTM architecture in PyTorch. The model must consume token embeddings and a sequence of parser actions (SHIFT, LEFT-ARC, RIGHT-ARC) to predict the next action. Use two LSTMs: one for the stack (with push/pop operations simulated via tensor indexing), and one for the buffer. Concatenate top-of-stack and front-of-buffer hidden states as input to a linear classifier over three action classes. Train for one epoch on a synthetic batch of 8 sequences (each max length 10) using cross-entropy loss and Adam optimizer. Return the trained model instance.","import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-
-def expand_mask(mask):
-    assert mask.ndim >= 2, ""Mask must be at least 2-dimensional with seq_length x seq_length""
-    if mask.ndim == 3:
-        mask = mask.unsqueeze(1)
-    while mask.ndim < 4:
-        mask = mask.unsqueeze(0)
-    return mask
-
-
-class MultiheadAttention(nn.Module):
-    def __init__(self, input_dim, embed_dim, num_heads):
+class StackLSTMParser(nn.Module):
+    def __init__(self, vocab_size, embed_dim, hidden_dim, num_actions=3):
         super().__init__()
-        assert embed_dim % num_heads == 0
-        self.embed_dim = embed_dim
-        self.num_heads = num_heads
-        self.head_dim = embed_dim // num_heads
-        self.qkv_proj = nn.Linear(input_dim, 3 * embed_dim)
-        self.o_proj = nn.Linear(embed_dim, input_dim)
+        self.embedding = nn.Embedding(vocab_size, embed_dim)
+        # TODO: Define stack LSTM, buffer LSTM, and classifier
+        # Stack LSTM processes elements pushed onto stack (use input_size=embed_dim)
+        # Buffer LSTM processes buffer tokens left-to-right (input_size=embed_dim)
+        # Classifier takes concatenated [stack_top, buffer_front] → logits for 3 actions
+        
+    def forward(self, tokens, actions_mask=None):
+        # tokens: LongTensor of shape (batch_size, seq_len)
+        # actions_mask: optional BoolTensor indicating valid positions for action prediction
+        # Return logits of shape (batch_size * seq_len, num_actions) for each timestep
+        # Only compute logits where actions_mask is True (or all timesteps if None)
+        pass
 
-    def forward(self, x, mask=None, return_attention=False):
-        # implement multi-head attention
-        pass","A working implementation of scaled dot-product attention and a MultiheadAttention module that supports masking, multiple heads, and optional return of attention maps.","- Use the contiguous section from Tutorial 6 covering Scaled Dot Product Attention and Multi-Head Attention only.
-- Do not expand the unit to include Transformer Encoder, positional encoding, or experiment sections.
-- Implement Q/K/V projection, head splitting, masking, softmax attention, head concatenation, and output projection.
-- Keep the task at the module level rather than the full end-to-end Transformer.",,Python,PyTorch / PyTorch Lightning,45,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P03,3
+# Synthetic data setup (do not modify)
+BATCH_SIZE, SEQ_LEN, VOCAB_SIZE = 8, 10, 1000
+embed_dim, hidden_dim = 64, 128
+tokens = torch.randint(0, VOCAB_SIZE, (BATCH_SIZE, SEQ_LEN))
+actions = torch.randint(0, 3, (BATCH_SIZE, SEQ_LEN))
+actions_mask = torch.ones_like(actions, dtype=torch.bool)
+
+# Instantiate and train model here
+model = StackLSTMParser(VOCAB_SIZE, embed_dim, hidden_dim)
+","A fully initialized and trained PyTorch nn.Module instance of StackLSTMParser that satisfies the forward pass signature and produces logits of shape (batch_size * seq_len, 3) when called on the synthetic tokens tensor.","- Use exactly two separate LSTM modules: one for stack state evolution and one for buffer state evolution.
+- Simulate stack push/pop using tensor slicing and indexing—do not use Python lists or external stack libraries.
+- The classifier must take only the final hidden state of the top stack element and the final hidden state of the first buffer token (at current timestep).
+- Train for exactly one epoch with batch gradient descent (no mini-batches within epoch); use learning rate 0.001 and Adam optimizer.
+- Return only the trained model object; do not return loss history, predictions, or auxiliary tensors.","Test 1
+Description: Model instantiation and forward pass produce correct output shape
+Input: logits = model(tokens)
+Expected: logits.shape == torch.Size([80, 3])
+Notes: Ensure no runtime errors and output matches expected dimensions.
+
+Test 2
+Description: Model contains required submodules
+Input: hasattr(model, 'embedding') and hasattr(model, '_stack_lstm') and hasattr(model, '_buffer_lstm')
+Expected: True
+Notes: Student must define named LSTM modules (e.g., _stack_lstm, _buffer_lstm) — verify existence via hasattr.
+
+Test 3
+Description: Forward pass gradients flow through all parameters
+Input: logits.sum().backward(); all(p.grad is not None for p in model.parameters())
+Expected: True
+Notes: All parameters must receive non-None gradients after backward pass.",Python,PyTorch,0,intermediate,,formal,,,,,,,,,,,,STUDENT-P03,3
+B0025,Define the RNN model for music generation,RNN,intermediate,code completion,"Let's define our model as an nn.Module. Fill in the TODOs to define the RNN model. Add the LSTM and Linear layers so that the model embeds character indices, processes them with an LSTM of hidden_size, and maps outputs back to the vocabulary size.","class LSTMModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_size):
+        super(LSTMModel, self).__init__()
+        self.hidden_size = hidden_size
+
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+
+        # TODO: Layer 2: LSTM with hidden_size `hidden_size`
+        self.lstm = nn.LSTM('''TODO''')  # TODO
+
+        # TODO: Layer 3: Linear layer to project to vocab_size
+        self.fc = nn.Linear('''TODO''')  # TODO
+
+    def init_hidden(self, batch_size, device):
+        return (torch.zeros(1, batch_size, self.hidden_size).to(device),
+                torch.zeros(1, batch_size, self.hidden_size).to(device))
+
+    def forward(self, x, state=None, return_state=False):
+        x = self.embedding(x)
+        if state is None:
+            state = self.init_hidden(x.size(0), x.device)
+        out, state = self.lstm(x, state)
+        out = self.fc(out)
+        return out if not return_state else (out, state)
+","A completed LSTMModel class that produces predictions of shape (batch_size, sequence_length, vocab_size) for character-level music generation.","- Use nn.Module to define the model.
+- Use an embedding layer, an nn.LSTM layer, and a linear output layer.
+- The LSTM hidden size should be hidden_size.
+- The linear layer should map the LSTM output to vocab_size.",,Python,PyTorch,60,intermediate,,formal,,,,,,,,,,,,STUDENT-P03,4
 B0019,Implement Scaled Dot-Product Attention with Causal Masking,Transformer,intermediate-advanced,code completion,"Complete the `scaled_dot_product_attention` function to compute scaled dot-product attention with optional causal (triangular) masking. The function must accept query, key, and value tensors of shape (batch_size, num_heads, seq_len, head_dim), apply scaling by sqrt(head_dim), compute attention scores via softmax over the last dimension of the dot product Q @ K^T, apply the mask (if provided), and return the weighted sum of values. The mask, if given, is a boolean tensor of shape (1, 1, seq_len, seq_len) where True indicates positions to be masked (i.e., set to -inf before softmax).","import torch
 import torch.nn.functional as F
 
@@ -167,69 +229,4 @@ Test 3
 Description: Verify scaling factor is exactly 1/sqrt(head_dim).
 Input: q = torch.randn(1, 1, 5, 64); k = torch.randn(1, 1, 5, 64); v = torch.randn(1, 1, 5, 64)
 Expected: The largest attention score before softmax should be ~64 * (1/sqrt(64)) = 8, assuming unit-norm inputs.
-Notes: Not a strict test; used for sanity — expect max(score_matrix) ≈ 7–9 under random unit-ish norms.",Python,PyTorch / PyTorch Lightning,45,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P03,4
-B0023,Define and train a CNN for MNIST digit classification,CNN,beginner-intermediate,model building,"In MIT Introduction to Deep Learning Lab 2 Part 1, define the CNN model for handwritten digit classification using the parameters shown in the network architecture, then train and evaluate it on MNIST. Use nn.Conv2d and nn.MaxPool2d layers to build the model, define an optimizer and loss function, run the training loop, and report the test accuracy.","class CNN(nn.Module):
-    def __init__(self):
-        super(CNN, self).__init__()
-        # TODO: Define the first convolutional layer
-        self.conv1 = # TODO
-        # TODO: Define the first max pooling layer
-        self.pool1 = # TODO
-        # TODO: Define the second convolutional layer
-        self.conv2 = # TODO
-        # TODO: Define the second max pooling layer
-        self.pool2 = # TODO
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(36 * 5 * 5, 128)
-        self.relu = nn.ReLU()
-        # TODO: Define the output linear layer
-        self.fc2 = # TODO
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.pool1(x)
-        # TODO: Implement the rest of the forward pass
-        return x",A trained CNN for MNIST digit classification and a reported test accuracy on the MNIST test set.,"- Use the MNIST training and test datasets from the notebook.
-- Use the CNN architecture described in the lab.
-- Define both the model and the training/evaluation procedure in PyTorch.
-- Report test accuracy after training.",,Python,PyTorch,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P03,5
-B0014,Build a Two-Block CNN for MNIST Classification,CNN,beginner-intermediate,model building,"Define a PyTorch `nn.Module` class named `MNIST_CNN` that implements a compact convolutional neural network for digit classification on MNIST. The model must consist of two identical blocks, each containing: (1) a 3×3 convolution with 8 output channels and ReLU activation, (2) 2×2 max pooling, followed by (3) a dropout layer with p=0.1. After the two blocks, flatten the output and apply a single linear layer mapping to 10 logits (one per digit class). Do not add batch normalization or additional layers. Train this model for exactly 5 epochs using SGD (lr=0.01), cross-entropy loss, and a batch size of 128. Return the final test accuracy (as a float between 0.0 and 1.0) after training completes.","import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
-
-def build_and_train_mnist_cnn():
-    # Define transformations
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    
-    # Load MNIST
-    train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
-    test_dataset = datasets.MNIST('./data', train=False, transform=transform)
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
-    
-    # TODO: Define MNIST_CNN class here
-    
-    # TODO: Initialize model, optimizer, loss
-    
-    # TODO: Implement 5-epoch training loop
-    
-    # TODO: Evaluate on test set and return final test accuracy as float
-    
-    return 0.0  # placeholder — replace with actual accuracy","A single float value representing the test accuracy (e.g., 0.987) achieved after 5 epochs of training, rounded to three decimal places.","- Use only `nn.Conv2d`, `nn.MaxPool2d`, `nn.Dropout`, `nn.ReLU`, `nn.Linear`, and `nn.Flatten`; no batch norm, adaptive pooling, or extra layers.
-- Each convolutional block must use kernel_size=3, stride=1, padding=1; max pooling must be 2×2 with stride=2.
-- Do not modify data preprocessing beyond the provided `transforms.Normalize`.
-- Training must run for exactly 5 epochs with no early stopping or learning rate scheduling.","Test 1
-Description: Verify final test accuracy is ≥ 0.975
-Expected: True if accuracy >= 0.975 else False
-Notes: Acceptable range reflects expected performance of this architecture on MNIST with given hyperparameters.
-
-Test 2
-Description: Confirm model has exactly two conv→relu→pool→dropout blocks before the final linear layer
-Expected: Model.named_children() yields exactly 2 'block' modules (or equivalent sequential structure) followed by Flatten and Linear(?, 10)
-Notes: Use print(list(model.named_children())) to verify layer count and order.",Python,PyTorch,45,beginner-intermediate,,formal,,,,,,,,,,,,STUDENT-P03,6
+Notes: Not a strict test; used for sanity — expect max(score_matrix) ≈ 7–9 under random unit-ish norms.",Python,PyTorch / PyTorch Lightning,45,intermediate-advanced,,formal,,,,,,,,,,,,STUDENT-P03,5
