@@ -19,23 +19,22 @@ from student_survey_db import (
     upsert_participant_meta,
 )
 
-
 ITEM_FIELDS = [
-    ("task_goal_clarity", "杩欓亾棰樻竻妤氳鏄庝簡鎴戦渶瑕佸畬鎴愮殑浠诲姟鐩爣銆?),
-    ("key_support", "杩欓亾棰樻彁渚涗簡寮€濮嬩綔绛旀墍闇€鐨勫叧閿俊鎭笌鏀寔銆?),
-    ("course_relevance", "杩欓亾棰樹笌娣卞害瀛︿範璇剧▼鍐呭鎴栧疄闄呯紪绋嬩换鍔＄浉鍏炽€?),
-    ("learning_help", "杩欓亾棰樺鎴戠殑瀛︿範鏈夋槑鏄惧府鍔┿€?),
-    ("info_load", "瀹屾垚杩欓亾棰樻椂锛屾垜闇€瑕佸悓鏃跺鐞嗗緢澶氫俊鎭€?),
-    ("search_effort", "闃呰杩欓亾棰樻椂锛屾垜闇€瑕侀澶栬姳鍔涙皵鍘绘壘鍑烘渶閲嶈鐨勪俊鎭€?),
-    ("active_engagement", "瀹屾垚杩欓亾棰樻椂锛屾垜浼氫富鍔ㄦ姇鍏ユ€濊€冨拰鐞嗚В銆?),
-    ("mental_effort", "鎬讳綋鏉ヨ锛屽畬鎴愯繖閬撻闇€瑕佹垜鎶曞叆杈冮珮鐨勫績鐞嗗姫鍔涖€?),
+    ("task_goal_clarity", "这道题清楚说明了我需要完成的任务目标。"),
+    ("key_support", "这道题提供了开始作答所需的关键信息与支持。"),
+    ("course_relevance", "这道题与深度学习课程内容或实际编程任务相关。"),
+    ("learning_help", "这道题对我的学习有明显帮助。"),
+    ("info_load", "完成这道题时，我需要同时处理很多信息。"),
+    ("search_effort", "阅读这道题时，我需要额外花力气去找出最重要的信息。"),
+    ("active_engagement", "完成这道题时，我会主动投入思考和理解。"),
+    ("mental_effort", "总体来说，完成这道题需要我投入较高的心理努力。"),
 ]
 
 BATCH_FIELDS = [
-    ("overall_usefulness", "杩欐壒缁冧範棰樻湁鍔╀簬鎻愰珮鎴戝娣卞害瀛︿範鐭ヨ瘑鐨勭悊瑙ｃ€?),
-    ("overall_ease", "鏁翠綋涓婏紝杩欐壒缁冧範棰樻瘮杈冨鏄撲笂鎵嬨€?),
-    ("continued_use_intention", "濡傛灉鍚庣画璇剧▼缁х画浣跨敤杩欑被缁冧範棰橈紝鎴戞効鎰忕户缁娇鐢ㄣ€?),
-    ("overall_quality", "鎬讳綋鑰岃█锛岃繖鎵圭粌涔犻鐨勮川閲忚緝楂樸€?),
+    ("overall_usefulness", "这批练习题有助于提高我对深度学习知识的理解。"),
+    ("overall_ease", "整体上，这批练习题比较容易上手。"),
+    ("continued_use_intention", "如果后续课程继续使用这类练习题，我愿意继续使用。"),
+    ("overall_quality", "总体而言，这批练习题的质量较高。"),
 ]
 
 WELCOME_PAGE = "welcome"
@@ -45,7 +44,7 @@ ATTENTION_PAGE = "attention"
 BATCH_PAGE = "batch"
 SUCCESS_PAGE = "success"
 LIKERT_OPTIONS = [1, 2, 3, 4, 5]
-LIKERT_CAPTION = "1 = 闈炲父涓嶅悓鎰? 5 = 闈炲父鍚屾剰"
+LIKERT_HELP = "1 = 非常不同意，5 = 非常同意"
 
 
 def now_iso() -> str:
@@ -101,11 +100,9 @@ def build_sequence(package_df: pd.DataFrame) -> list[str]:
     item_ids = package_df["blind_exercise_id"].astype(str).tolist()
     sequence = [WELCOME_PAGE, CONSENT_PAGE, BACKGROUND_PAGE]
     if item_ids:
-        prefix = item_ids[:3]
-        suffix = item_ids[3:]
-        sequence.extend(prefix)
+        sequence.extend(item_ids[:3])
         sequence.append(ATTENTION_PAGE)
-        sequence.extend(suffix)
+        sequence.extend(item_ids[3:])
     else:
         sequence.append(ATTENTION_PAGE)
     sequence.extend([BATCH_PAGE, SUCCESS_PAGE])
@@ -118,23 +115,23 @@ def move_page(delta: int, sequence: list[str]) -> None:
 
 
 def render_exercise(row: pd.Series) -> None:
-    st.markdown(f"**缁冧範缂栧彿锛?* {normalize_text(row.get('blind_exercise_id'), '鏈紪鍙?)}")
-    st.markdown(f"**棰樼洰鏍囬锛?* {normalize_text(row.get('title'), '鏃犳爣棰?)}")
-    st.markdown(f"**涓婚锛?* {normalize_text(row.get('topic'), '鏈爣娉?)}")
-    st.markdown("**棰樼洰鎻忚堪锛?*")
-    st.write(normalize_text(row.get("instruction_text"), "鏃?))
-    st.markdown("**杈撳叆杈撳嚭瑕佹眰锛?*")
-    st.write(normalize_text(row.get("expected_output"), "鏃?))
-    st.markdown("**绾︽潫鏉′欢锛?*")
-    st.write(normalize_text(row.get("constraints_text"), "鏃?))
-    st.markdown("**璧峰浠ｇ爜锛堝鏈夛級锛?*")
+    st.markdown(f"**练习编号：** {normalize_text(row.get('blind_exercise_id'), '未编号')}")
+    st.markdown(f"**主题：** {normalize_text(row.get('topic'), '未标注')}")
+    st.markdown(f"**题目标题：** {normalize_text(row.get('title'), '无标题')}")
+    st.markdown("**题目描述：**")
+    st.write(normalize_text(row.get("instruction_text"), "无"))
+    st.markdown("**输入输出要求：**")
+    st.write(normalize_text(row.get("expected_output"), "无"))
+    st.markdown("**约束条件：**")
+    st.write(normalize_text(row.get("constraints_text"), "无"))
+    st.markdown("**起始代码（如有）：**")
     starter_code = normalize_text(row.get("starter_code"))
     if starter_code.strip():
         st.code(starter_code, language="python")
     else:
-        st.write("鏃?)
-    st.markdown("**娴嬭瘯鏍蜂緥锛堝鏈夛級锛?*")
-    st.write(normalize_text(row.get("test_cases_text"), "鏃?))
+        st.write("无")
+    st.markdown("**测试样例（如有）：**")
+    st.write(normalize_text(row.get("test_cases_text"), "无"))
 
 
 def render_likert(prompt: str, key: str) -> None:
@@ -143,7 +140,7 @@ def render_likert(prompt: str, key: str) -> None:
         options=LIKERT_OPTIONS,
         value=st.session_state.get(key, 3),
         key=key,
-        help=LIKERT_CAPTION,
+        help=LIKERT_HELP,
     )
 
 
@@ -151,7 +148,7 @@ def save_background() -> None:
     payload = {
         "participant_id": st.session_state["student_participant_id"],
         "package_id": st.session_state["student_package_id"],
-        "consent": "鏄?,
+        "consent": "是",
         "study_stage": st.session_state["bg_study_stage"],
         "programming_background": st.session_state["bg_programming_background"],
         "python_familiarity": st.session_state["bg_python_familiarity"],
@@ -213,7 +210,7 @@ def save_batch() -> None:
         "overall_ease": st.session_state["batch_overall_ease"],
         "continued_use_intention": st.session_state["batch_continued_use_intention"],
         "overall_quality": st.session_state["batch_overall_quality"],
-        "final_comment": st.session_state["batch_final_comment"].strip(),
+        "final_comment": st.session_state.get("batch_final_comment", "").strip(),
         "rating_time_seconds": round(elapsed_seconds, 2),
         "saved_at": now_iso(),
     }
@@ -232,78 +229,73 @@ def save_batch() -> None:
 
 
 def render_welcome() -> None:
-    st.title("娣卞害瀛︿範缁冧範棰樺涔犱綋楠岃瘎浼伴棶鍗凤紙瀛︾敓鐗堬級")
-    st.write("鎮ㄥソ锛佹湰闂嵎鐢ㄤ簬浜嗚В瀛︾敓瀵规繁搴﹀涔犵粌涔犻鐨勫涔犱綋楠屼笌璇勪环銆?)
-    st.write("闂嵎鍖垮悕濉啓锛屼粎鐢ㄤ簬瀛︽湳鐮旂┒銆傛暣涓棶鍗烽璁￠渶瑕?8-12 鍒嗛挓銆?)
-    st.write("璇锋牴鎹鐩湰韬綔绛旓紝涓嶅繀鐚滄祴棰樼洰鏉ユ簮銆?)
-    st.info("鏈摼鎺ュ凡缁忎负鎮ㄥ浐瀹氫簡棰樺寘锛岃鍦ㄥ悓涓€璁惧瀹屾垚濉啓銆?)
-    if st.button("寮€濮嬪～鍐?, use_container_width=True):
+    st.title("深度学习练习题学习体验评估问卷（学生版）")
+    st.write("您好！本问卷用于了解学生对深度学习练习题的学习体验与评价。")
+    st.write("问卷匿名填写，仅用于学术研究。整个问卷预计需要 8-12 分钟。")
+    st.write("请根据题目本身作答，不必猜测题目来源。")
+    st.info("本链接已经为您固定了题包，请在同一设备完成填写。")
+    if st.button("开始填写", use_container_width=True):
         st.session_state["student_page_index"] = 1
         st.rerun()
 
 
 def render_consent(sequence: list[str]) -> None:
-    st.title("鐭ユ儏鍚屾剰")
-    choice = st.radio("鎮ㄦ槸鍚︾煡鎯呭悓鎰忓弬涓庢湰鐮旂┒锛?, ["鏄?, "鍚?], horizontal=True)
+    st.title("知情同意")
+    choice = st.radio("您是否知情同意参与本研究？", ["是", "否"], horizontal=True)
     col1, col2 = st.columns(2)
-    back = col1.button("杩斿洖", use_container_width=True)
-    next_step = col2.button("缁х画", use_container_width=True)
+    back = col1.button("返回", use_container_width=True)
+    next_step = col2.button("继续", use_container_width=True)
     if back:
         move_page(-1, sequence)
         st.rerun()
     if next_step:
-        if choice != "鏄?:
-            st.session_state["student_page_index"] = len(sequence) - 1
+        if choice != "是":
             st.session_state["student_batch_response"] = {"declined": True}
+            st.session_state["student_page_index"] = len(sequence) - 1
             st.rerun()
         move_page(1, sequence)
         st.rerun()
 
 
 def render_background(sequence: list[str]) -> None:
-    st.title("鑳屾櫙淇℃伅")
+    st.title("背景信息")
     with st.form("background_form"):
         st.selectbox(
-            "鎮ㄧ洰鍓嶆墍澶勭殑瀛︿範闃舵鏄紵",
-            ["鏈浣庡勾绾?, "鏈楂樺勾绾?, "纭曞＋鐮旂┒鐢?, "鍗氬＋鐮旂┒鐢?, "鍏朵粬"],
+            "您目前所处的学习阶段是？",
+            ["本科低年级", "本科高年级", "硕士研究生", "博士研究生", "其他"],
             key="bg_study_stage",
         )
         st.selectbox(
-            "鎮ㄧ殑缂栫▼瀛︿範鑳屾櫙濡備綍锛?,
-            [
-                "鍑犱箮娌℃湁缂栫▼鍩虹",
-                "瀛﹁繃鍩虹缂栫▼",
-                "瀛﹁繃鏈哄櫒瀛︿範鎴栨繁搴﹀涔犲熀纭€",
-                "鏈夎緝澶氱浉鍏宠绋嬫垨椤圭洰缁忛獙",
-            ],
+            "您的编程学习背景如何？",
+            ["几乎没有编程基础", "学过基础编程", "学过机器学习或深度学习基础", "有较多相关课程或项目经验"],
             key="bg_programming_background",
         )
         st.select_slider(
-            "鎮ㄥ Python 鐨勭啛鎮夌▼搴﹀浣曪紵",
-            options=["闈炲父涓嶇啛鎮?, "涓嶅お鐔熸倝", "涓€鑸?, "姣旇緝鐔熸倝", "闈炲父鐔熸倝"],
-            value="涓€鑸?,
+            "您对 Python 的熟悉程度如何？",
+            options=["非常不熟悉", "不太熟悉", "一般", "比较熟悉", "非常熟悉"],
+            value="一般",
             key="bg_python_familiarity",
         )
         st.select_slider(
-            "鎮ㄥ娣卞害瀛︿範妗嗘灦锛堝 PyTorch銆乀ensorFlow锛夌殑鐔熸倝绋嬪害濡備綍锛?,
-            options=["闈炲父涓嶇啛鎮?, "涓嶅お鐔熸倝", "涓€鑸?, "姣旇緝鐔熸倝", "闈炲父鐔熸倝"],
-            value="涓€鑸?,
+            "您对深度学习框架（如 PyTorch、TensorFlow）的熟悉程度如何？",
+            options=["非常不熟悉", "不太熟悉", "一般", "比较熟悉", "非常熟悉"],
+            value="一般",
             key="bg_framework_familiarity",
         )
         st.radio(
-            "鎮ㄦ槸鍚﹀涔犺繃娣卞害瀛︿範鐩稿叧璇剧▼锛?,
-            options=["鏄?, "鍚?],
+            "您是否学习过深度学习相关课程？",
+            options=["是", "否"],
             horizontal=True,
             key="bg_dl_course_taken",
         )
         st.multiselect(
-            "鎮ㄥ浠ヤ笅鍝簺涓婚鐩稿鏇寸啛鎮夛紵锛堝彲澶氶€夛級",
-            options=["CNN", "RNN / LSTM", "Transformer", "浼樺寲涓庤缁冨垎鏋?, "閮戒笉澶啛鎮?],
+            "您对以下哪些主题相对更熟悉？（可多选）",
+            options=["CNN", "RNN / LSTM", "Transformer", "优化与训练分析", "都不太熟悉"],
             key="bg_familiar_topics",
         )
         col1, col2 = st.columns(2)
-        back = col1.form_submit_button("杩斿洖", use_container_width=True)
-        next_step = col2.form_submit_button("淇濆瓨骞跺紑濮嬬瓟棰?, use_container_width=True)
+        back = col1.form_submit_button("返回", use_container_width=True)
+        next_step = col2.form_submit_button("保存并开始答题", use_container_width=True)
     if back:
         move_page(-1, sequence)
         st.rerun()
@@ -314,26 +306,19 @@ def render_background(sequence: list[str]) -> None:
 
 
 def render_item(sequence: list[str], package_df: pd.DataFrame, blind_exercise_id: str) -> None:
-    row = package_df.loc[
-        package_df["blind_exercise_id"].astype(str) == str(blind_exercise_id)
-    ].iloc[0]
+    row = package_df.loc[package_df["blind_exercise_id"].astype(str) == str(blind_exercise_id)].iloc[0]
     display_order = int(row.get("display_order", 0)) or 0
     total_items = len(package_df)
-    st.title(f"绗?{display_order} / {total_items} 棰?)
+    st.title(f"练习 {display_order} / {total_items}")
     render_exercise(row)
-    st.caption(LIKERT_CAPTION)
-
+    st.caption(LIKERT_HELP)
     with st.form(f"item_form_{blind_exercise_id}"):
         for field_name, prompt in ITEM_FIELDS:
             render_likert(prompt, f"{blind_exercise_id}_{field_name}")
-        st.text_area(
-            "濡傛灉鍙兘淇敼涓€涓湴鏂癸紝浣犳渶甯屾湜鏀瑰摢閲岋紵锛堝彲閫夛級",
-            key=f"{blind_exercise_id}_open_comment",
-        )
+        st.text_area("如果只能修改一个地方，你最希望改哪里？（可选）", key=f"{blind_exercise_id}_open_comment")
         col1, col2 = st.columns(2)
-        back = col1.form_submit_button("涓婁竴棰?, use_container_width=True)
-        next_step = col2.form_submit_button("淇濆瓨骞剁户缁?, use_container_width=True)
-
+        back = col1.form_submit_button("上一题", use_container_width=True)
+        next_step = col2.form_submit_button("保存并继续", use_container_width=True)
     if back or next_step:
         save_item(row)
         move_page(-1 if back else 1, sequence)
@@ -341,19 +326,19 @@ def render_item(sequence: list[str], package_df: pd.DataFrame, blind_exercise_id
 
 
 def render_attention(sequence: list[str]) -> None:
-    st.title("娉ㄦ剰鍔涙娴?)
-    st.write("涓虹‘璁ゆ偍鍦ㄨ鐪熶綔绛旓紝璇锋湰棰橀€夋嫨鈥滃悓鎰忊€濄€?)
+    st.title("注意力检测")
+    st.write("为确认您在认真作答，请本题选择 4 分（同意）。")
     with st.form("attention_form"):
         st.select_slider(
-            "璇烽€夋嫨鏈€绗﹀悎鐨勯€夐」",
+            "请选择最符合的选项",
             options=LIKERT_OPTIONS,
             value=4,
             key="attention_check_score",
-            help="姝ｇ‘绛旀搴斾负 4锛堝悓鎰忥級銆?,
+            help="正确答案应为 4。",
         )
         col1, col2 = st.columns(2)
-        back = col1.form_submit_button("涓婁竴椤?, use_container_width=True)
-        next_step = col2.form_submit_button("淇濆瓨骞剁户缁?, use_container_width=True)
+        back = col1.form_submit_button("上一页", use_container_width=True)
+        next_step = col2.form_submit_button("保存并继续", use_container_width=True)
     if back or next_step:
         save_attention()
         move_page(-1 if back else 1, sequence)
@@ -361,19 +346,16 @@ def render_attention(sequence: list[str]) -> None:
 
 
 def render_batch(sequence: list[str]) -> None:
-    st.title("鏁翠綋璇勪环")
-    st.write("浠ヤ笅棰樼洰璇峰熀浜庝綘鍒氬垰瀹屾垚鐨勮繖涓€鎵圭粌涔犻鏁翠綋浣撻獙浣滅瓟銆?)
-    st.caption(LIKERT_CAPTION)
+    st.title("整体评价")
+    st.write("以下题目请基于您刚刚完成的这一批练习题整体体验作答。")
+    st.caption(LIKERT_HELP)
     with st.form("batch_form"):
         for field_name, prompt in BATCH_FIELDS:
             render_likert(prompt, f"batch_{field_name}")
-        st.text_area(
-            "浣犲鏈棶鍗锋垨鏈壒缁冧範棰樿繕鏈変粈涔堝缓璁紵",
-            key="batch_final_comment",
-        )
+        st.text_area("你对本问卷或本批练习题还有什么建议？", key="batch_final_comment")
         col1, col2 = st.columns(2)
-        back = col1.form_submit_button("涓婁竴椤?, use_container_width=True)
-        submit = col2.form_submit_button("鎻愪氦闂嵎", use_container_width=True)
+        back = col1.form_submit_button("上一页", use_container_width=True)
+        submit = col2.form_submit_button("提交问卷", use_container_width=True)
     if back:
         move_page(-1, sequence)
         st.rerun()
@@ -385,25 +367,25 @@ def render_batch(sequence: list[str]) -> None:
 
 def render_success() -> None:
     if st.session_state.get("student_batch_response", {}).get("declined"):
-        st.title("闂嵎宸茬粨鏉?)
-        st.info("鎮ㄩ€夋嫨浜嗕笉鍚屾剰鍙備笌锛屾湰娆′笉浼氳褰曟寮忕瓟鍗枫€傛劅璋㈡煡鐪嬨€?)
+        st.title("问卷已结束")
+        st.info("您选择了不同意参与，本次不会记录正式答卷。感谢查看。")
         return
-    st.title("鎻愪氦鎴愬姛")
-    st.success("鎰熻阿鍙備笌锛屾偍鐨勯棶鍗峰凡鎻愪氦鎴愬姛銆?)
-    st.write("璇峰叧闂〉闈㈠嵆鍙€?)
+    st.title("提交成功")
+    st.success("感谢参与，您的问卷已提交成功。")
+    st.write("现在可以关闭页面。")
 
 
 def render_already_submitted(package_id: str, participant_id: str) -> None:
-    st.title("闂嵎宸叉彁浜?)
-    st.info("杩欎釜绛斿嵎閾炬帴宸茬粡鎻愪氦杩囷紝涓嶉渶瑕侀噸澶嶅～鍐欍€?)
-    st.write(f"鍙備笌鑰呯紪鍙凤細`{participant_id}`")
-    st.write(f"棰樺寘缂栧彿锛歚{package_id}`")
+    st.title("问卷已提交")
+    st.info("这个答卷链接已经提交过，不需要重复填写。")
+    st.write(f"参与者编号：`{participant_id}`")
+    st.write(f"题包编号：`{package_id}`")
 
 
 def render_invalid_link(message: str) -> None:
-    st.title("闂嵎閾炬帴鏃犳晥")
+    st.title("问卷链接无效")
     st.error(message)
-    st.write("璇疯仈绯荤爺绌惰€呰幏鍙栨纭殑涓撳睘闂嵎閾炬帴銆?)
+    st.write("请联系研究者获取正确的专属问卷链接。")
 
 
 def apply_student_page_style() -> None:
@@ -415,13 +397,6 @@ def apply_student_page_style() -> None:
         footer {visibility: hidden;}
         header {visibility: hidden;}
         .block-container {max-width: 900px; padding-top: 2rem; padding-bottom: 3rem;}
-        .survey-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 1rem 1.25rem;
-            background: #ffffff;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -429,45 +404,36 @@ def apply_student_page_style() -> None:
 
 
 def main() -> None:
-    st.set_page_config(
-        page_title="Student Survey",
-        page_icon=":memo:",
-        layout="wide",
-    )
+    st.set_page_config(page_title="Student Survey", page_icon=":memo:", layout="wide")
     apply_student_page_style()
     init_db()
-
     package_id = read_package_id()
     participant_id = read_participant_id()
     if not package_id:
-        render_invalid_link("褰撳墠閾炬帴缂哄皯 `package` 鍙傛暟锛屾棤娉曡繘鍏ユ寮忛棶鍗枫€?)
+        render_invalid_link("当前链接缺少 package 参数，无法进入正式问卷。")
         st.stop()
     if not package_exists(package_id):
-        render_invalid_link("褰撳墠閾炬帴涓殑 `package` 鏃犳晥銆?)
+        render_invalid_link("当前链接中的 package 无效。")
         st.stop()
     if not participant_id:
-        render_invalid_link("褰撳墠閾炬帴缂哄皯 `pid` 鍙傛暟锛屾棤娉曠粦瀹氬弬涓庤€呯紪鍙枫€?)
+        render_invalid_link("当前链接缺少 pid 参数，无法绑定参与者编号。")
         st.stop()
     if participant_already_submitted(participant_id):
         render_already_submitted(package_id, participant_id)
         st.stop()
-
     initialize_state(package_id, participant_id)
     existing_meta = get_participant_meta(participant_id)
     if existing_meta and existing_meta.get("package_id") and existing_meta["package_id"] != package_id:
-        render_invalid_link("杩欎釜鍙備笌鑰呯紪鍙峰凡缁忕粦瀹氬埌鍏朵粬棰樺寘锛屼笉鑳介噸澶嶇敤浜庡綋鍓嶉摼鎺ャ€?)
+        render_invalid_link("这个参与者编号已经绑定到其他题包，不能重复用于当前链接。")
         st.stop()
-
     package_df = load_package_items(package_id)
     if package_df.empty:
-        render_invalid_link("褰撳墠棰樺寘涓虹┖锛屾殏鏃舵棤娉曚綔绛斻€?)
+        render_invalid_link("当前题包为空，暂时无法作答。")
         st.stop()
-
     sequence = build_sequence(package_df)
     page_key = sequence[st.session_state["student_page_index"]]
     progress_steps = max(1, len(sequence) - 1)
     st.progress(min((st.session_state["student_page_index"] + 1) / progress_steps, 1.0))
-
     if page_key == WELCOME_PAGE:
         render_welcome()
     elif page_key == CONSENT_PAGE:
@@ -486,4 +452,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
