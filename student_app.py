@@ -27,7 +27,7 @@ ITEM_FIELDS = [
     ("info_load", "完成这道题时，我需要同时处理很多信息。"),
     ("search_effort", "阅读这道题时，我需要额外花力气去找出最重要的信息。"),
     ("active_engagement", "完成这道题时，我会主动投入思考和理解。"),
-    ("mental_effort", "总体来说，完成这道题需要我投入较高的心理努力。"),
+    ("mental_effort", "总体来说，完成这道题需要我投入多大的心理努力？"),
 ]
 
 BATCH_FIELDS = [
@@ -44,13 +44,20 @@ ATTENTION_PAGE = "attention"
 BATCH_PAGE = "batch"
 SUCCESS_PAGE = "success"
 LIKERT_OPTIONS = [1, 2, 3, 4, 5]
-LIKERT_HELP = "1 = 非常不同意，5 = 非常同意"
+LIKERT_HELP = "1 非常不同意 / 2 不同意 / 3 一般 / 4 同意 / 5 非常同意"
 LIKERT_LABELS = {
     1: "1",
     2: "2",
     3: "3",
     4: "4",
     5: "5",
+}
+MENTAL_EFFORT_LABELS = {
+    1: "非常低",
+    2: "较低",
+    3: "一般",
+    4: "较高",
+    5: "非常高",
 }
 
 
@@ -163,6 +170,19 @@ def render_likert(prompt: str, key: str, *, missing: bool = False) -> None:
     )
 
 
+def render_mental_effort(prompt: str, key: str, *, missing: bool = False) -> None:
+    if missing:
+        st.caption(":red[这一项还没有作答，请补充后继续。]")
+    st.radio(
+        prompt,
+        options=LIKERT_OPTIONS,
+        index=None,
+        key=key,
+        horizontal=False,
+        format_func=lambda value: MENTAL_EFFORT_LABELS[value],
+    )
+
+
 def is_likert_answered(key: str) -> bool:
     return st.session_state.get(key) in LIKERT_OPTIONS
 
@@ -259,8 +279,9 @@ def save_batch() -> None:
 def render_welcome() -> None:
     st.title("深度学习练习题学习体验评估问卷（学生版）")
     st.write("您好！本问卷用于了解学生对深度学习练习题的学习体验与评价。")
-    st.write("问卷匿名填写，仅用于学术研究。整个问卷预计需要 8-12 分钟。")
-    st.write("请根据题目本身作答，不必猜测题目来源。")
+    st.write("您将阅读若干道深度学习练习题，并根据自己的真实感受进行评分。")
+    st.write("本问卷匿名填写，仅用于学术研究。")
+    st.write("感谢您的参与！")
     st.info("本链接已经为您固定了题包，请在同一设备完成填写。")
     st.caption("当前默认显示简体中文题面。如需查看英文原版，可在链接后加上 `&lang=en`。")
     if st.button("开始填写", use_container_width=True):
@@ -365,11 +386,18 @@ def render_item(sequence: list[str], package_df: pd.DataFrame, blind_exercise_id
         st.info("还有少量评分题未完成，我已经在对应题目上方标出来了。")
     with st.form(f"item_form_{blind_exercise_id}"):
         for field_name, prompt in ITEM_FIELDS:
-            render_likert(
-                prompt,
-                f"{blind_exercise_id}_{field_name}",
-                missing=field_name in missing_fields,
-            )
+            if field_name == "mental_effort":
+                render_mental_effort(
+                    prompt,
+                    f"{blind_exercise_id}_{field_name}",
+                    missing=field_name in missing_fields,
+                )
+            else:
+                render_likert(
+                    prompt,
+                    f"{blind_exercise_id}_{field_name}",
+                    missing=field_name in missing_fields,
+                )
         st.text_area("如果只能修改一个地方，你最希望改哪里？（可选）", key=f"{blind_exercise_id}_open_comment")
         col1, col2 = st.columns(2)
         back = col1.form_submit_button("上一题", use_container_width=True)
