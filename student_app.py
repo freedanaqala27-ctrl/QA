@@ -45,6 +45,13 @@ BATCH_PAGE = "batch"
 SUCCESS_PAGE = "success"
 LIKERT_OPTIONS = [1, 2, 3, 4, 5]
 LIKERT_HELP = "1 = 非常不同意，5 = 非常同意"
+LIKERT_LABELS = {
+    1: "1",
+    2: "2",
+    3: "3",
+    4: "4",
+    5: "5",
+}
 
 
 def now_iso() -> str:
@@ -142,14 +149,27 @@ def render_exercise(row: pd.Series) -> None:
     st.write(normalize_text(row.get("test_cases_text"), "无"))
 
 
-def render_likert(prompt: str, key: str) -> None:
-    st.select_slider(
+def render_likert(prompt: str, key: str, *, missing: bool = False) -> None:
+    if missing:
+        st.caption(":red[这一项还没有作答，请补充后继续。]")
+    st.radio(
         prompt,
         options=LIKERT_OPTIONS,
-        value=st.session_state.get(key, 3),
+        index=None,
         key=key,
         help=LIKERT_HELP,
+        horizontal=True,
+        format_func=lambda value: LIKERT_LABELS[value],
     )
+
+
+def is_likert_answered(key: str) -> bool:
+    return st.session_state.get(key) in LIKERT_OPTIONS
+
+
+def clear_missing_state(*keys: str) -> None:
+    for key in keys:
+        st.session_state.pop(key, None)
 
 
 def save_background() -> None:
@@ -279,21 +299,24 @@ def render_background(sequence: list[str]) -> None:
             ["几乎没有编程基础", "学过基础编程", "学过机器学习或深度学习基础", "有较多相关课程或项目经验"],
             key="bg_programming_background",
         )
-        st.select_slider(
+        st.radio(
             "您对 Python 的熟悉程度如何？",
             options=["非常不熟悉", "不太熟悉", "一般", "比较熟悉", "非常熟悉"],
-            value="一般",
+            index=None,
             key="bg_python_familiarity",
+            horizontal=True,
         )
-        st.select_slider(
+        st.radio(
             "您对深度学习框架（如 PyTorch、TensorFlow）的熟悉程度如何？",
             options=["非常不熟悉", "不太熟悉", "一般", "比较熟悉", "非常熟悉"],
-            value="一般",
+            index=None,
             key="bg_framework_familiarity",
+            horizontal=True,
         )
         st.radio(
             "您是否学习过深度学习相关课程？",
             options=["是", "否"],
+            index=None,
             horizontal=True,
             key="bg_dl_course_taken",
         )
@@ -309,6 +332,22 @@ def render_background(sequence: list[str]) -> None:
         move_page(-1, sequence)
         st.rerun()
     if next_step:
+        missing_fields = []
+        if not st.session_state.get("bg_study_stage"):
+            missing_fields.append("学习阶段")
+        if not st.session_state.get("bg_programming_background"):
+            missing_fields.append("编程背景")
+        if not st.session_state.get("bg_python_familiarity"):
+            missing_fields.append("Python 熟悉程度")
+        if not st.session_state.get("bg_framework_familiarity"):
+            missing_fields.append("深度学习框架熟悉程度")
+        if not st.session_state.get("bg_dl_course_taken"):
+            missing_fields.append("是否学过深度学习课程")
+        if not st.session_state.get("bg_familiar_topics"):
+            missing_fields.append("熟悉主题")
+        if missing_fields:
+            st.warning(f"请先完成这些必答项：{'、'.join(missing_fields)}")
+            return
         save_background()
         move_page(1, sequence)
         st.rerun()
@@ -318,55 +357,89 @@ def render_item(sequence: list[str], package_df: pd.DataFrame, blind_exercise_id
     row = package_df.loc[package_df["blind_exercise_id"].astype(str) == str(blind_exercise_id)].iloc[0]
     display_order = int(row.get("display_order", 0)) or 0
     total_items = len(package_df)
+    missing_fields = set(st.session_state.get(f"{blind_exercise_id}_missing_fields", []))
     st.title(f"练习 {display_order} / {total_items}")
     render_exercise(row)
     st.caption(LIKERT_HELP)
+    if missing_fields:
+        st.info("还有少量评分题未完成，我已经在对应题目上方标出来了。")
     with st.form(f"item_form_{blind_exercise_id}"):
         for field_name, prompt in ITEM_FIELDS:
-            render_likert(prompt, f"{blind_exercise_id}_{field_name}")
+            render_likert(
+                prompt,
+                f"{blind_exercise_id}_{field_name}",
+                missing=field_name in missing_fields,
+            )
         st.text_area("如果只能修改一个地方，你最希望改哪里？（可选）", key=f"{blind_exercise_id}_open_comment")
         col1, col2 = st.columns(2)
         back = col1.form_submit_button("上一题", use_container_width=True)
         next_step = col2.form_submit_button("保存并继续", use_container_width=True)
-    if back or next_step:
+    if back:
+        clear_missing_state(f"{blind_exercise_id}_missing_fields")
+        move_page(-1, sequence)
+        st.rerun()
+    if next_step:
+        missing_field_names = [
+            field_name
+            for field_name, prompt in ITEM_FIELDS
+            if not is_likert_answered(f"{blind_exercise_id}_{field_name}")
+        ]
+        if missing_field_names:
+            st.session_state[f"{blind_exercise_id}_missing_fields"] = missing_field_names
+            st.rerun()
+        clear_missing_state(f"{blind_exercise_id}_missing_fields")
         save_item(row)
-        move_page(-1 if back else 1, sequence)
+        move_page(1, sequence)
         st.rerun()
 
 
 def render_attention(sequence: list[str]) -> None:
+    attention_missing = st.session_state.get("attention_missing", False)
     st.title("注意力检测")
     st.write("为确认您在认真作答，请本题选择 4 分（同意）。")
     with st.form("attention_form"):
-        st.select_slider(
-            "请选择最符合的选项",
-            options=LIKERT_OPTIONS,
-            value=4,
-            key="attention_check_score",
-            help="正确答案应为 4。",
-        )
+        render_likert("请选择最符合的选项", "attention_check_score", missing=attention_missing)
         col1, col2 = st.columns(2)
         back = col1.form_submit_button("上一页", use_container_width=True)
         next_step = col2.form_submit_button("保存并继续", use_container_width=True)
-    if back or next_step:
+    if back:
+        clear_missing_state("attention_missing")
+        move_page(-1, sequence)
+        st.rerun()
+    if next_step:
+        if not is_likert_answered("attention_check_score"):
+            st.session_state["attention_missing"] = True
+            st.rerun()
+        clear_missing_state("attention_missing")
         save_attention()
-        move_page(-1 if back else 1, sequence)
+        move_page(1, sequence)
         st.rerun()
 
 
 def render_batch(sequence: list[str]) -> None:
+    missing_fields = set(st.session_state.get("batch_missing_fields", []))
     st.title("整体评价")
     st.write("以下题目请基于您刚刚完成的这一批练习题整体体验作答。")
     st.caption(LIKERT_HELP)
+    if missing_fields:
+        st.info("还有少量整体评价未完成，我已经在对应题目上方标出来了。")
     for field_name, prompt in BATCH_FIELDS:
-        render_likert(prompt, f"batch_{field_name}")
+        render_likert(prompt, f"batch_{field_name}", missing=field_name in missing_fields)
     st.text_area("你对本问卷或本批练习题还有什么建议？", key="batch_final_comment")
     back = st.button("上一页", key="batch_back", use_container_width=True)
     submit = st.button("提交问卷", key="batch_submit", type="primary", use_container_width=True)
     if back:
+        clear_missing_state("batch_missing_fields")
         move_page(-1, sequence)
         st.rerun()
     if submit:
+        missing_field_names = [
+            field_name for field_name, prompt in BATCH_FIELDS if not is_likert_answered(f"batch_{field_name}")
+        ]
+        if missing_field_names:
+            st.session_state["batch_missing_fields"] = missing_field_names
+            st.rerun()
+        clear_missing_state("batch_missing_fields")
         save_batch()
         move_page(1, sequence)
         st.rerun()
@@ -459,4 +532,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
 
