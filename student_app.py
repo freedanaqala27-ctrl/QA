@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
@@ -63,6 +63,39 @@ MENTAL_EFFORT_LABELS = {
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def set_backend_status(available: bool, message: str = "") -> None:
+    st.session_state["survey_backend_available"] = available
+    st.session_state["survey_backend_message"] = message.strip()
+
+
+def backend_available() -> bool:
+    return bool(st.session_state.get("survey_backend_available", True))
+
+
+def ensure_backend_ready() -> bool:
+    cached = st.session_state.get("survey_backend_available")
+    if cached is not None:
+        return bool(cached)
+    try:
+        init_db()
+        set_backend_status(True, "")
+        return True
+    except Exception as exc:
+        set_backend_status(
+            False,
+            f"数据库连接失败（{type(exc).__name__}），当前已切换为演示模式，填写内容不会写入后台。",
+        )
+        return False
+
+
+def render_backend_warning() -> None:
+    message = st.session_state.get(
+        "survey_backend_message",
+        "数据库连接暂时不可用，当前为演示模式。",
+    )
+    st.warning(message)
 
 
 def initialize_state(package_id: str, participant_id: str) -> None:
@@ -206,7 +239,14 @@ def save_background() -> None:
         "started_at": st.session_state["student_started_at"],
     }
     st.session_state["student_background"] = payload
-    upsert_participant_meta(payload)
+    if backend_available():
+        try:
+            upsert_participant_meta(payload)
+        except Exception as exc:
+            set_backend_status(
+                False,
+                f"数据库连接失败（{type(exc).__name__}），当前已切换为演示模式，后续作答不会写入后台。",
+            )
 
 
 def save_item(row: pd.Series) -> None:
@@ -228,7 +268,14 @@ def save_item(row: pd.Series) -> None:
         "saved_at": now_iso(),
     }
     st.session_state["student_item_responses"][blind_exercise_id] = response
-    upsert_item_rating(response)
+    if backend_available():
+        try:
+            upsert_item_rating(response)
+        except Exception as exc:
+            set_backend_status(
+                False,
+                f"数据库连接失败（{type(exc).__name__}），当前已切换为演示模式，后续作答不会写入后台。",
+            )
 
 
 def save_attention() -> None:
@@ -245,7 +292,14 @@ def save_attention() -> None:
         "attention_check_score": score,
         "attention_check_passed": score == 4,
     }
-    upsert_participant_meta(payload)
+    if backend_available():
+        try:
+            upsert_participant_meta(payload)
+        except Exception as exc:
+            set_backend_status(
+                False,
+                f"数据库连接失败（{type(exc).__name__}），当前已切换为演示模式，后续作答不会写入后台。",
+            )
 
 
 def save_batch() -> None:
@@ -263,7 +317,14 @@ def save_batch() -> None:
         "saved_at": now_iso(),
     }
     st.session_state["student_batch_response"] = batch_payload
-    upsert_batch_feedback(batch_payload)
+    if backend_available():
+        try:
+            upsert_batch_feedback(batch_payload)
+        except Exception as exc:
+            set_backend_status(
+                False,
+                f"数据库连接失败（{type(exc).__name__}），当前已切换为演示模式，后续作答不会写入后台。",
+            )
     meta_payload = {
         **st.session_state["student_background"],
         **st.session_state["student_attention"],
@@ -272,8 +333,15 @@ def save_batch() -> None:
         "started_at": st.session_state["student_started_at"],
         "submitted_at": now_iso(),
     }
-    upsert_participant_meta(meta_payload)
-    export_csvs()
+    if backend_available():
+        try:
+            upsert_participant_meta(meta_payload)
+            export_csvs()
+        except Exception as exc:
+            set_backend_status(
+                False,
+                f"数据库连接失败（{type(exc).__name__}），当前已切换为演示模式，本次提交不会写入后台。",
+            )
 
 
 def render_welcome() -> None:
@@ -478,7 +546,10 @@ def render_success() -> None:
         st.info("您选择了不同意参与，本次不会记录正式答卷。感谢查看。")
         return
     st.title("提交成功")
-    st.success("感谢参与，您的问卷已提交成功。")
+    if backend_available():
+        st.success("感谢参与，您的问卷已提交成功。")
+    else:
+        st.warning("当前为演示模式，问卷流程已完成，但本次填写内容未写入数据库。")
     st.write("现在可以关闭页面。")
 
 
@@ -513,7 +584,7 @@ def apply_student_page_style() -> None:
 def main() -> None:
     st.set_page_config(page_title="Student Survey", page_icon=":memo:", layout="wide")
     apply_student_page_style()
-    init_db()
+    backend_ready = ensure_backend_ready()
     package_id = read_package_id()
     participant_id = read_participant_id()
     language = read_language()
@@ -526,11 +597,11 @@ def main() -> None:
     if not participant_id:
         render_invalid_link("当前链接缺少 pid 参数，无法绑定参与者编号。")
         st.stop()
-    if participant_already_submitted(participant_id):
+    if backend_ready and participant_already_submitted(participant_id):
         render_already_submitted(package_id, participant_id)
         st.stop()
     initialize_state(package_id, participant_id)
-    existing_meta = get_participant_meta(participant_id)
+    existing_meta = get_participant_meta(participant_id) if backend_ready else None
     if existing_meta and existing_meta.get("package_id") and existing_meta["package_id"] != package_id:
         render_invalid_link("这个参与者编号已经绑定到其他题包，不能重复用于当前链接。")
         st.stop()
@@ -538,6 +609,8 @@ def main() -> None:
     if package_df.empty:
         render_invalid_link("当前题包为空，暂时无法作答。")
         st.stop()
+    if not backend_ready:
+        render_backend_warning()
     sequence = build_sequence(package_df)
     page_key = sequence[st.session_state["student_page_index"]]
     progress_steps = max(1, len(sequence) - 1)
